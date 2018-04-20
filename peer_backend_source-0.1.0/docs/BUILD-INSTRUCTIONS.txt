@@ -1,0 +1,67 @@
+
+Build Instructions Infinity Peer Backend v0.1.0
+----------------------------------------
+
+XIN backends makes extensive use of nodejs. We use if for dependency managemnt, to 
+power our builds and to assist in development through auto-recompiling and to power up 
+your local development server. Complete installation instructions for nodejs are out 
+of the scope of this document since those instructions depend largely on the platform 
+you are on.
+
+Windows and Mac users please look at anyone of these links:
+
+https://www.google.com/search?q=how+to+install+nodejs (GIYF)
+https://howtonode.org/how-to-install-nodejs
+
+Debian/Ubuntu users please follow these steps
+
+sudo apt-get update
+sudo apt-get install nodejs
+sudo apt-get install npm
+
+Requirements
+------------
+ 1. You need to install nodejs. For windows download it from here: https://nodejs.org/en/download/
+ 2. After installing nodejs and setting path variables, install gulp as a global dependency. 
+    Follow the guide here: http://omcfarlane.co.uk/install-gulp-js-windows/
+ 3. All backends using mongodb as storage endpoint, please refer to: https://www.mongodb.com/
+    for OS specific install instructions. The standard install is bind to localhost. In case
+    you are running a open mongodb server see the authentication section in main.js.   
+
+
+MongoDB Debian Example
+----------------------
+apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv EA312927
+echo "deb http://repo.mongodb.org/apt/debian jessie/mongodb-org/3.2 main" | tee /etc/apt/sources.list.d/mongodb-org-3.2.list
+apt-get update
+apt-get install -y mongodb-org
+
+To start/stop the server use:
+    service mongod start
+    service mongod stop
+    service mongod restart 
+
+
+Build
+-----
+
+ First time install
+
+ 1. Type 'npm install'
+
+ This installs all node modules need to run the peer backend.
+ See package.json for detailed modules.
+
+
+Run
+---
+./nodejs main.js
+
+
+Service
+-------
+
+Please see the docs for creating a service file.
+(http://www.infinity-economics.org/docs/node_service.html)
+
+

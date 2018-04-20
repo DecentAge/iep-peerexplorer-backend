@@ -1,0 +1,23 @@
+{
+  "name": "PeerCrawler",
+  "version": "0.1.0",
+  "description": "",
+  "main": "main.js",
+  "author": "Infinity Community Development Team",
+  "scripts": {
+    "start": "node main"
+  },
+  "dependencies": {
+    "async": "^2.1.4",
+    "body-parser": "^1.16.0",
+    "cron": "^1.2.1",
+    "express": "^4.14.0",
+    "minimist": "^1.2.0",
+    "moment": "^2.17.1",
+    "mongoose": "^4.10.8",
+    "request": "^2.79.0",
+    "swagger-node-express": "^2.1.3",
+    "toobusy-js": "^0.5.1",
+    "underscore": "^1.8.3"
+  }
+}
