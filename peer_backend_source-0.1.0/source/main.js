@@ -18,6 +18,7 @@ const mongoose = require('mongoose');
 const request = require('request');
 var config = require('./core/config.js');
 var CronJob = require('cron').CronJob;
+var ping = require('net-ping');
 
 mongoose.Promise = global.Promise;
 
@@ -60,6 +61,9 @@ process.on('SIGINT', function() {
 
 var express = require('express');
 var app = express();
+
+var Peers = require('./models/model.peer');
+var Stats = require('./models/model.stats');
 
 app.enable('trust proxy');
 
@@ -112,6 +116,53 @@ server.on('listening', function(){
                     });
                },5000)
             });
+        },
+        start:true
+    });
+
+    cronjobs.pingOnlineNodes = new CronJob({
+        cronTime:'0 0 0 * * *',
+        onTick: function() {
+            console.log("Ping Cron Initiated");
+            var total = 0;
+            var alive = 0;
+
+            Peers.find({}, function(err, docs) {
+                if (err) {
+                    console.log(err);
+                } else {
+                    var hosts = docs.map(function(x){
+                        return x._id;
+                    });
+
+                    var session = ping.createSession();
+
+                    if (hosts != null) {
+                        console.log(hosts.length +" hosts found");
+                        hosts.forEach(function (host) {
+                            session.pingHost(host, function (error, target) {
+                                total++;
+                                if (!error){
+                                    alive++;
+                                }
+                                if (hosts.length == total + 1) {
+                                    var data = {};
+                                    data.nodesOnline = alive;
+                                    console.log(alive +" hosts online found");
+
+                                    Stats.findOneAndUpdate({_id: 'nodeStats'}, data, {upsert: true}, function (err, doc) {
+                                        if (err) {
+                                            console.log(err);
+                                        } else {
+                                            console.log(doc);
+                                        }
+                                    });
+                                }
+                            });
+                        });
+                    }
+                }
+            })
         },
         start:true
     });
