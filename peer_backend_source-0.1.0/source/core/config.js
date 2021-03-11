@@ -21,10 +21,9 @@ module.exports = {
     concurrent: 15,
     rankFactor:1.00,
     mongodb:{
-        user:"apiUser",
-        pass:"**yourPasswordHere**",
-        host:'mongodb://localhost/peers'
-
+        user:"peerexplorer",
+        pass:"peerexplorerTest",
+        host:'mongodb://peerexplorer-db:27017/peers'
     },
     adminkey:'**YourAdminKeyHere**'
 

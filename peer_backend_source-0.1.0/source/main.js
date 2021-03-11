@@ -23,17 +23,11 @@ var ping = require('net-ping');
 mongoose.Promise = global.Promise;
 
 mongoose.connect(
-
-   config.mongodb.host,
+	config.mongodb.host,
     {
-
-    //   auth:{
-    //		authdb:'admin',
-    //		useMongoClient: true,
-    //		user:config.mongodb.user,
-    //		pass:config.mongodb.pass
-    //  }
-    
+		useMongoClient: true,
+		user:config.mongodb.user,
+		pass:config.mongodb.pass
    }
 );
 
