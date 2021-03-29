@@ -1,3 +1,3 @@
 #!/bin/bash
-docker build -t iep-peerexplorer-backend .
+docker build -t decentage/iep-peerexplorer-backend:latest .
 
