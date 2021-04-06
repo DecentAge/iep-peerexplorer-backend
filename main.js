@@ -22,13 +22,24 @@ var ping = require('net-ping');
 
 mongoose.Promise = global.Promise;
 
-mongoose.connect(
-	config.mongodb.host,
-    {
-		user:config.mongodb.user,
-		pass:config.mongodb.pass
-   }
-);
+const {
+	  MONGO_USERNAME,
+	  MONGO_PASSWORD,
+	  MONGO_HOSTNAME,
+	  MONGO_PORT,
+	  MONGO_DB
+	} = process.env;
+
+	const options = {
+	  useNewUrlParser: true,
+	  reconnectTries: Number.MAX_VALUE,
+	  reconnectInterval: 500,
+	  connectTimeoutMS: 10000,
+	};
+
+	const url = `mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@${MONGO_HOSTNAME}:${MONGO_PORT}/${MONGO_DB}?authSource=admin`;
+
+	mongoose.connect(url, options);
 
 mongoose.connection.on('connected', function () {
   console.log('Mongoose default connection open to ' + config.mongodb.host);
