@@ -25,7 +25,6 @@ mongoose.Promise = global.Promise;
 mongoose.connect(
 	config.mongodb.host,
     {
-		useMongoClient: true,
 		user:config.mongodb.user,
 		pass:config.mongodb.pass
    }
