@@ -27,13 +27,22 @@ const sta = ':' + config.peer + '/api?requestType=getPeerState';
 const suf = ':' + config.peer + '/api?requestType=getPeers';
 
 const pre = 'http://';
-const geoip = 'http://freegeoip.net/json/';
+
+const geoipServiceEndpoint = "http://api.ipstack.com/${ip}?access_key=${apiKey}";
+const geoipServiceApiKey = "36146f7aee7b529306116797068bff18";
 
 var Peer = require('../models/model.peer.js');
 var State = require('../models/model.state.js');
 var Perf = require('../models/model.perf.js');
 var Stats = require('../models/model.stats.js');
 var Blacklist = require('../models/model.blacklist');
+
+function getGeoipUrl(ip){
+    var url = geoipServiceEndpoint;
+    url = url.replace("${ip}", ip);
+    url = url.replace("${apiKey}", geoipServiceApiKey);
+    return url;
+}
 
 function deactivate(ip,cb){
     Peer.findOneAndUpdate({_id:ip}, {active:false, lastFetched:moment().toDate()}, function(err,res){
@@ -464,24 +473,29 @@ exports.getGeoIP = function(force, cb){
             async.eachLimit(nodes,10,function(node,cb){
 
                 if(force || !node.geoipfetched){
-                    request({uri:geoip+node._id,timeout:5000}, function (error, response, body) {
+                    request({uri:getGeoipUrl(node._id),timeout:5000}, function (error, response, body) {
 
-                        console.log('Getting geoip data for'+node._id);
+                        console.log('Getting geoip data for '+node._id, getGeoipUrl(node._id));
 
                         var geodata = {};
-
-                        if(body)
-                            geodata = JSON.parse(body);
-
-                        var data = {};
-                        data.geoip = geodata;
-                        data.geoipfetched = true;
-
-                        State.findOneAndUpdate({_id:node._id}, data, function(err,res){
-                            if(err)
-                                console.log(err);
-                            cb();
-                        });
+                        
+                        try {
+	                        if(body)
+	                            geodata = JSON.parse(body);
+	
+	                        var data = {};
+	                        data.geoip = geodata;
+	                        data.geoipfetched = true;
+	
+	                        State.findOneAndUpdate({_id:node._id}, data, function(err,res){
+	                            if(err)
+	                                console.log(err);
+	                            cb();
+	                        });
+                        } catch(err) {
+                        	console.log("Could not fetch geoip data for "+node._id, err);
+                            cb(err,null)
+                        }
 
                     });
                 }else{
