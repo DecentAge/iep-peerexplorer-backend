@@ -195,6 +195,8 @@ exports.populate = function(ip, cb){
 exports.getstate = function(ip,cb){
 
     var url = pre+ip+sta;
+    
+    console.log("Requesting " + url);
 
     request({uri:url,timeout:5000}, function (error, response, body) {
         if(error){
