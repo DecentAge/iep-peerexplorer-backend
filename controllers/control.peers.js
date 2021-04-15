@@ -23,8 +23,8 @@ const config = require('../core/config.js');
 
 const seed = config.seed;
 
-const sta = ':' + config.peer + '/api?requestType=getPeerState';
-const suf = ':' + config.peer + '/api?requestType=getPeers';
+const sta = '/api?requestType=getPeerState';
+const suf = '/api?requestType=getPeers';
 
 const pre = 'http://';
 
@@ -113,6 +113,7 @@ exports.fetch = function(ip,cb){
 
     request({url:url, timeout:5000}, function (error, response, body) {
         if(error){
+        	console.log("Could not fetch " + ip);
             cb(error,null);
         }else{
             var peers = JSON.parse(body).peers;
@@ -124,9 +125,15 @@ exports.fetch = function(ip,cb){
 
 exports.seed = function(cb){
     module.exports.fetch(seed,function(err,res){
-        if(err){
+    	if(err){
+    		console.log("Could not fetch bootnodes", err);
             cb(err,null);
-        }else{
+        } else {
+    	
+        	console.log("Get initial list of nodes");
+
+        	// temporary
+        	//
 
             //An array of all blacklisted nodes is pulled here to make sure they arent checked
             //Blacklist.find({type:node, blacklisted:true }, function(err, nodes){
@@ -140,8 +147,12 @@ exports.seed = function(cb){
 
                 async.each(res, function(ip,cb){
                     if(!list[ip]){
+                    	console.log("Saving peer " + ip + " to db");
                         var peer = new Peer({_id:ip});
-                        peer.save(function(){
+                        peer.save(function(err){
+                        	if(err){
+                            	console.log("Could not save peer " + ip + " to db", err);
+                            }
                             cb();
                         });
                     }else{
@@ -153,7 +164,6 @@ exports.seed = function(cb){
                 });
 
             });
-
         }
     })
 };
@@ -174,8 +184,12 @@ exports.populate = function(ip, cb){
 
                 async.each(res, function(ip,cb){
                     if(!list[ip]){
+                    	console.log("Saving peer " + ip + " to db");
                         var peer = new Peer({_id:ip});
-                        peer.save(function(){
+                        peer.save(function(err){
+                        	if(err){
+                            	console.log("Could not save peer " + ip + " to db", err);
+                            }
                             cb();
                         });
                     }else{
