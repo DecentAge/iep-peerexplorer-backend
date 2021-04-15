@@ -16,7 +16,7 @@
 
 module.exports = {
     port: 8888,
-    seed: process.env.IEP_BOOTNODES_URL || "http://localhost/config/bootnodes.json",
+    seed: process.env.IEP_BOOTNODES_URL || "http://master-config/config/bootnodes.json",
     peer: 23457,
     concurrent: 15,
     rankFactor:1.00,

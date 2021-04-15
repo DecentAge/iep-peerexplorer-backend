@@ -107,13 +107,13 @@ function updateHistory(history, val){
 
 exports.fetch = function(ip,cb){
 
-    console.log('Fetching:  ' + ip );
-
     var url = pre+ip+suf;
+
+    console.log('Fetching:  ' + url );
 
     request({url:url, timeout:5000}, function (error, response, body) {
         if(error){
-        	console.log("Could not fetch " + ip);
+        	console.log("Could not fetch " + url);
             cb(error,null);
         }else{
             var peers = JSON.parse(body).peers;
@@ -124,7 +124,7 @@ exports.fetch = function(ip,cb){
 };
 
 exports.seed = function(cb){
-    module.exports.fetch(seed,function(err,res){
+	request(seed,function(err,res,body){
     	if(err){
     		console.log("Could not fetch bootnodes", err);
             cb(err,null);
@@ -132,8 +132,7 @@ exports.seed = function(cb){
     	
         	console.log("Get initial list of nodes");
 
-        	// temporary
-        	//
+        	var peers = JSON.parse(body);
 
             //An array of all blacklisted nodes is pulled here to make sure they arent checked
             //Blacklist.find({type:node, blacklisted:true }, function(err, nodes){
@@ -145,7 +144,7 @@ exports.seed = function(cb){
                     list[node._id] = 1;
                 });
 
-                async.each(res, function(ip,cb){
+                async.each(peers, function(ip,cb){
                     if(!list[ip]){
                     	console.log("Saving peer " + ip + " to db");
                         var peer = new Peer({_id:ip});
