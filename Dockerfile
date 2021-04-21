@@ -4,7 +4,9 @@ WORKDIR /usr
 COPY ./package.json /usr
 RUN npm install --silent
 COPY . /usr
+ADD https://github.com/ufoscout/docker-compose-wait/releases/download/2.8.0/wait /wait
+RUN chmod +x /wait
 #RUN npm run lint
 EXPOSE 8992
-ENTRYPOINT ["npm", "run"]
-CMD ["start"]
+
+CMD /wait && npm run start
