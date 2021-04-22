@@ -124,15 +124,13 @@ exports.fetch = function(ip,cb){
 };
 
 exports.seed = function(cb){
-	request(seed,function(err,res,body){
-    	if(err){
-    		console.log("Could not fetch bootnodes", err);
+    module.exports.fetch(seed,function(err,res){
+        if(err){
+        	console.log("Could not fetch bootnodes");
             cb(err,null);
         } else {
     	
         	console.log("Get initial list of nodes");
-
-        	var peers = JSON.parse(body);
 
             //An array of all blacklisted nodes is pulled here to make sure they arent checked
             //Blacklist.find({type:node, blacklisted:true }, function(err, nodes){
@@ -144,7 +142,7 @@ exports.seed = function(cb){
                     list[node._id] = 1;
                 });
 
-                async.each(peers, function(ip,cb){
+                async.each(res, function(ip,cb){
                     if(!list[ip]){
                     	console.log("Saving peer " + ip + " to db");
                         var peer = new Peer({_id:ip});
