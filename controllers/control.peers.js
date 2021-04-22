@@ -222,67 +222,72 @@ exports.getstate = function(ip,cb){
                 }
             });
         }else{
-            var data = JSON.parse(body);
-
-            var pData = {
-                lastFetched:moment().toDate()
-            };
-
-            data.rank = calculateRank(data);
-            data.lastUpdated = moment().toDate();
-
-            if(data.availableProcessors){
-
-                pData.active = true;
-                data.active = true;
-
-                // console.log('Active');
-
-                var perf = new Perf({
-                    ip:ip,
-                    timestamp:moment().toDate(),
-                    numberOfActivePeers:data.numberOfActivePeers,
-                    SystemLoadAverage:data.SystemLoadAverage,
-                    freeMemory:data.freeMemory
-                });
-
-                perf.save();
-
-                State.findOne({_id:ip}, function(err,doc){
-
-                    if(doc){
-                        data.history_freeMemory = updateHistory(doc.history_freeMemory, data.freeMemory);
-
-                        data.history_SystemLoadAverage = updateHistory(doc.history_SystemLoadAverage, data.SystemLoadAverage);
-
-                        data.history_numberOfActivePeers = updateHistory(doc.history_numberOfActivePeers, data.numberOfActivePeers);
-
-                        data.history_requestProcessingTime = updateHistory(doc.history_requestProcessingTime, data.requestProcessingTime);
-                    }
-
-                    State.findOneAndUpdate({_id:ip}, data, {upsert:true, new: true}, function(err,res){
-                        if(err)
-                            console.log(err);
-                    });
-
-                });
-
-                Peer.findOneAndUpdate({_id:ip}, pData, {upsert:true, new: true}, function(err,res){
-                    if(err){
-                        console.log(err);
-                        cb(err,null);
-                    }else{
-                        // console.log(res);
-                        cb(null,res);
-                    }
-                });
-
-            }else{
-                //console.log('Inactive');
-                deactivate(ip, function(err, res){
-                    cb();
-                })
-            }
+        	try {
+	            var data = JSON.parse(body);
+	
+	            var pData = {
+	                lastFetched:moment().toDate()
+	            };
+	
+	            data.rank = calculateRank(data);
+	            data.lastUpdated = moment().toDate();
+	
+	            if(data.availableProcessors){
+	
+	                pData.active = true;
+	                data.active = true;
+	
+	                // console.log('Active');
+	
+	                var perf = new Perf({
+	                    ip:ip,
+	                    timestamp:moment().toDate(),
+	                    numberOfActivePeers:data.numberOfActivePeers,
+	                    SystemLoadAverage:data.SystemLoadAverage,
+	                    freeMemory:data.freeMemory
+	                });
+	
+	                perf.save();
+	
+	                State.findOne({_id:ip}, function(err,doc){
+	
+	                    if(doc){
+	                        data.history_freeMemory = updateHistory(doc.history_freeMemory, data.freeMemory);
+	
+	                        data.history_SystemLoadAverage = updateHistory(doc.history_SystemLoadAverage, data.SystemLoadAverage);
+	
+	                        data.history_numberOfActivePeers = updateHistory(doc.history_numberOfActivePeers, data.numberOfActivePeers);
+	
+	                        data.history_requestProcessingTime = updateHistory(doc.history_requestProcessingTime, data.requestProcessingTime);
+	                    }
+	
+	                    State.findOneAndUpdate({_id:ip}, data, {upsert:true, new: true}, function(err,res){
+	                        if(err)
+	                            console.log(err);
+	                    });
+	
+	                });
+	
+	                Peer.findOneAndUpdate({_id:ip}, pData, {upsert:true, new: true}, function(err,res){
+	                    if(err){
+	                        console.log(err);
+	                        cb(err,null);
+	                    }else{
+	                        // console.log(res);
+	                        cb(null,res);
+	                    }
+	                });
+	
+	            }else{
+	                //console.log('Inactive');
+	                deactivate(ip, function(err, res){
+	                    cb();
+	                })
+	            }
+        	} catch (error) {
+        		console.log("Could not update peerstate", error);
+        		console.log("Node response:", body);
+        	}
         }
     });
 
