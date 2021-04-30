@@ -23,17 +23,26 @@ const config = require('../core/config.js');
 
 const seed = config.seed;
 
-const sta = ':' + config.peer + '/api?requestType=getPeerState';
-const suf = ':' + config.peer + '/api?requestType=getPeers';
+const sta = '/api?requestType=getPeerState';
+const suf = '/api?requestType=getPeers';
 
 const pre = 'http://';
-const geoip = 'http://freegeoip.net/json/';
+
+const geoipServiceEndpoint = "http://api.ipstack.com/${ip}?access_key=${apiKey}";
+const geoipServiceApiKey = "36146f7aee7b529306116797068bff18";
 
 var Peer = require('../models/model.peer.js');
 var State = require('../models/model.state.js');
 var Perf = require('../models/model.perf.js');
 var Stats = require('../models/model.stats.js');
 var Blacklist = require('../models/model.blacklist');
+
+function getGeoipUrl(ip){
+    var url = geoipServiceEndpoint;
+    url = url.replace("${ip}", ip);
+    url = url.replace("${apiKey}", geoipServiceApiKey);
+    return url;
+}
 
 function deactivate(ip,cb){
     Peer.findOneAndUpdate({_id:ip}, {active:false, lastFetched:moment().toDate()}, function(err,res){
@@ -98,12 +107,13 @@ function updateHistory(history, val){
 
 exports.fetch = function(ip,cb){
 
-    console.log('Fetching:  ' + ip );
-
     var url = pre+ip+suf;
+
+    console.log('Fetching:  ' + url );
 
     request({url:url, timeout:5000}, function (error, response, body) {
         if(error){
+        	console.log("Could not fetch " + url);
             cb(error,null);
         }else{
             var peers = JSON.parse(body).peers;
@@ -116,8 +126,11 @@ exports.fetch = function(ip,cb){
 exports.seed = function(cb){
     module.exports.fetch(seed,function(err,res){
         if(err){
+        	console.log("Could not fetch bootnodes");
             cb(err,null);
-        }else{
+        } else {
+    	
+        	console.log("Get initial list of nodes");
 
             //An array of all blacklisted nodes is pulled here to make sure they arent checked
             //Blacklist.find({type:node, blacklisted:true }, function(err, nodes){
@@ -131,8 +144,12 @@ exports.seed = function(cb){
 
                 async.each(res, function(ip,cb){
                     if(!list[ip]){
+                    	console.log("Saving peer " + ip + " to db");
                         var peer = new Peer({_id:ip});
-                        peer.save(function(){
+                        peer.save(function(err){
+                        	if(err){
+                            	console.log("Could not save peer " + ip + " to db", err);
+                            }
                             cb();
                         });
                     }else{
@@ -144,7 +161,6 @@ exports.seed = function(cb){
                 });
 
             });
-
         }
     })
 };
@@ -165,8 +181,12 @@ exports.populate = function(ip, cb){
 
                 async.each(res, function(ip,cb){
                     if(!list[ip]){
+                    	console.log("Saving peer " + ip + " to db");
                         var peer = new Peer({_id:ip});
-                        peer.save(function(){
+                        peer.save(function(err){
+                        	if(err){
+                            	console.log("Could not save peer " + ip + " to db", err);
+                            }
                             cb();
                         });
                     }else{
@@ -186,6 +206,8 @@ exports.populate = function(ip, cb){
 exports.getstate = function(ip,cb){
 
     var url = pre+ip+sta;
+    
+    console.log("Requesting " + url);
 
     request({uri:url,timeout:5000}, function (error, response, body) {
         if(error){
@@ -198,67 +220,72 @@ exports.getstate = function(ip,cb){
                 }
             });
         }else{
-            var data = JSON.parse(body);
-
-            var pData = {
-                lastFetched:moment().toDate()
-            };
-
-            data.rank = calculateRank(data);
-            data.lastUpdated = moment().toDate();
-
-            if(data.availableProcessors){
-
-                pData.active = true;
-                data.active = true;
-
-                // console.log('Active');
-
-                var perf = new Perf({
-                    ip:ip,
-                    timestamp:moment().toDate(),
-                    numberOfActivePeers:data.numberOfActivePeers,
-                    SystemLoadAverage:data.SystemLoadAverage,
-                    freeMemory:data.freeMemory
-                });
-
-                perf.save();
-
-                State.findOne({_id:ip}, function(err,doc){
-
-                    if(doc){
-                        data.history_freeMemory = updateHistory(doc.history_freeMemory, data.freeMemory);
-
-                        data.history_SystemLoadAverage = updateHistory(doc.history_SystemLoadAverage, data.SystemLoadAverage);
-
-                        data.history_numberOfActivePeers = updateHistory(doc.history_numberOfActivePeers, data.numberOfActivePeers);
-
-                        data.history_requestProcessingTime = updateHistory(doc.history_requestProcessingTime, data.requestProcessingTime);
-                    }
-
-                    State.findOneAndUpdate({_id:ip}, data, {upsert:true, new: true}, function(err,res){
-                        if(err)
-                            console.log(err);
-                    });
-
-                });
-
-                Peer.findOneAndUpdate({_id:ip}, pData, {upsert:true, new: true}, function(err,res){
-                    if(err){
-                        console.log(err);
-                        cb(err,null);
-                    }else{
-                        // console.log(res);
-                        cb(null,res);
-                    }
-                });
-
-            }else{
-                //console.log('Inactive');
-                deactivate(ip, function(err, res){
-                    cb();
-                })
-            }
+        	try {
+	            var data = JSON.parse(body);
+	
+	            var pData = {
+	                lastFetched:moment().toDate()
+	            };
+	
+	            data.rank = calculateRank(data);
+	            data.lastUpdated = moment().toDate();
+	
+	            if(data.availableProcessors){
+	
+	                pData.active = true;
+	                data.active = true;
+	
+	                // console.log('Active');
+	
+	                var perf = new Perf({
+	                    ip:ip,
+	                    timestamp:moment().toDate(),
+	                    numberOfActivePeers:data.numberOfActivePeers,
+	                    SystemLoadAverage:data.SystemLoadAverage,
+	                    freeMemory:data.freeMemory
+	                });
+	
+	                perf.save();
+	
+	                State.findOne({_id:ip}, function(err,doc){
+	
+	                    if(doc){
+	                        data.history_freeMemory = updateHistory(doc.history_freeMemory, data.freeMemory);
+	
+	                        data.history_SystemLoadAverage = updateHistory(doc.history_SystemLoadAverage, data.SystemLoadAverage);
+	
+	                        data.history_numberOfActivePeers = updateHistory(doc.history_numberOfActivePeers, data.numberOfActivePeers);
+	
+	                        data.history_requestProcessingTime = updateHistory(doc.history_requestProcessingTime, data.requestProcessingTime);
+	                    }
+	
+	                    State.findOneAndUpdate({_id:ip}, data, {upsert:true, new: true}, function(err,res){
+	                        if(err)
+	                            console.log(err);
+	                    });
+	
+	                });
+	
+	                Peer.findOneAndUpdate({_id:ip}, pData, {upsert:true, new: true}, function(err,res){
+	                    if(err){
+	                        console.log(err);
+	                        cb(err,null);
+	                    }else{
+	                        // console.log(res);
+	                        cb(null,res);
+	                    }
+	                });
+	
+	            }else{
+	                //console.log('Inactive');
+	                deactivate(ip, function(err, res){
+	                    cb();
+	                })
+	            }
+        	} catch (error) {
+        		console.log("Could not update peerstate", error);
+        		console.log("Node response:", body);
+        	}
         }
     });
 
@@ -464,24 +491,29 @@ exports.getGeoIP = function(force, cb){
             async.eachLimit(nodes,10,function(node,cb){
 
                 if(force || !node.geoipfetched){
-                    request({uri:geoip+node._id,timeout:5000}, function (error, response, body) {
+                    request({uri:getGeoipUrl(node._id),timeout:5000}, function (error, response, body) {
 
-                        console.log('Getting geoip data for'+node._id);
+                        console.log('Getting geoip data for '+node._id, getGeoipUrl(node._id));
 
                         var geodata = {};
-
-                        if(body)
-                            geodata = JSON.parse(body);
-
-                        var data = {};
-                        data.geoip = geodata;
-                        data.geoipfetched = true;
-
-                        State.findOneAndUpdate({_id:node._id}, data, function(err,res){
-                            if(err)
-                                console.log(err);
-                            cb();
-                        });
+                        
+                        try {
+	                        if(body)
+	                            geodata = JSON.parse(body);
+	
+	                        var data = {};
+	                        data.geoip = geodata;
+	                        data.geoipfetched = true;
+	
+	                        State.findOneAndUpdate({_id:node._id}, data, function(err,res){
+	                            if(err)
+	                                console.log(err);
+	                            cb();
+	                        });
+                        } catch(err) {
+                        	console.log("Could not fetch geoip data for "+node._id, err);
+                            cb(err,null)
+                        }
 
                     });
                 }else{

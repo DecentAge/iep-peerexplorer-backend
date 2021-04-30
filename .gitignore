@@ -287,3 +287,5 @@ dist
 
 # End of https://www.toptal.com/developers/gitignore/api/node,eclipse,intellij
 /.project
+/.idea/
+/package-lock.json

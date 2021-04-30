@@ -1,10 +1,10 @@
 FROM node:12
-RUN mkdir -p /usr
-WORKDIR /usr
-COPY ./package.json /usr
+WORKDIR /app
+COPY ./package.json /app
 RUN npm install --silent
-COPY . /usr
+COPY . /app
+ADD https://github.com/ufoscout/docker-compose-wait/releases/download/2.8.0/wait /wait
+RUN chmod +x /wait
 #RUN npm run lint
 EXPOSE 8992
-ENTRYPOINT ["npm", "run"]
-CMD ["start"]
+CMD /wait && npm run start

@@ -16,13 +16,13 @@
 
 module.exports = {
     port: 8888,
-    seed: '199.127.137.169',
+    seed: process.env.IEP_PEEREXPLORER_BACKEND_NODE_API_HOST || '199.127.137.169',
     peer: 23457,
     concurrent: 15,
     rankFactor:1.00,
     mongodb:{
-        user:"peerexplorer",
-        pass:"peerexplorerTest",
+        user:'peerexplorer',
+        pass:'peerexplorerTest',
         host:'mongodb://peerexplorer-db:27017/peers'
     },
     adminkey:'**YourAdminKeyHere**'
