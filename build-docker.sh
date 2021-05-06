@@ -4,5 +4,5 @@ set -o pipefail
 set -o nounset
 
 RELEASE_VERSION=$(cat release-version.txt)
-docker build -t decentage/iep-peerexplorer-backend:latest .
+docker build -t decentage/iep-peerexplorer-backend:${RELEASE_VERSION} .
 
