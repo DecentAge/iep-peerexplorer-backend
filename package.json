@@ -5,6 +5,7 @@
   "main": "main.js",
   "author": "Infinity Community Development Team",
   "scripts": {
+  	"update-version": "npm version $npm_config_release_version --allow-same-version --git-tag-version false && envsub --env RELEASE_VERSION=$npm_config_release_version src/env.config.js.template src/env.config.js.template",
     "start": "node main"
   },
   "dependencies": {
