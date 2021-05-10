@@ -18,8 +18,14 @@ const peers = require('../controllers/control.peers');
 const service = require('../controllers/control.services.js');
 const blacklist = require('../controllers/control.blacklist')
 const config = require('../core/config');
+var pjson = require('../package.json');
 
 module.exports = function(router) {
+
+    router.route('/api/version')
+        .get(function (req, res) {
+            res.send(pjson.version);
+        });
 
     router.route('/api/nodes')
         .get(function (req, res) {
