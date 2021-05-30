@@ -90,7 +90,7 @@ app.use(bodyParser.json());
 app.use(express.static(__dirname + '/static'));
 
 var router = express.Router();
-app.use(router);
+app.use(process.env.PUBLIC_PATH, router);
 
 require('./routes/route.peers.js')(router);
 require('./routes/route.services.js')(router);
