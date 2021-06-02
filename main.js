@@ -109,12 +109,15 @@ server.on('listening', function(){
         cronTime:'00 */7 * * * *',
         onTick: function() {
             console.log('Initiating crawl from cronjob..');
-            request('http://localhost:' + port + '/api/crawl', function(){
+            request('http://localhost:' + port + '/api/crawl', function(error){
+               console.error(error);
                setTimeout(function(){
 					console.log('Initiating stats from cronjob..');
-                    request('http://localhost:' + port + '/api/buildStats', function(){
+                    request('http://localhost:' + port + '/api/buildStats', function(error){
+                   		console.error(error);
 						console.log('Initiating geo from cronjob..');
-                    	request('http://localhost:' + port + '/api/getGeoIP', function(){
+                    	request('http://localhost:' + port + '/api/getGeoIP', function(error){
+                   			console.error(error);
 							console.log('cronjob done...');
                         });
                     });
