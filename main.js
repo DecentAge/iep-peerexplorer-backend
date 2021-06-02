@@ -108,23 +108,22 @@ server.on('listening', function(){
     cronjobs.crawl = new CronJob({
         cronTime:'00 */7 * * * *',
         onTick: function() {
-            console.log('Initiating crawl from cronjob..');
-            console.log('Calling http://localhost:' + port + '/api/crawl');
-            request('http://localhost:' + port + '/api/crawl', function(error){
-               console.error(error);
-               setTimeout(function(){
-					console.log('Initiating stats from cronjob..');
-					console.log('Calling http://localhost:' + port + '/api/buildStats');
-                    request('http://localhost:' + port + '/api/buildStats', function(error){
-                   		console.error(error);
-						console.log('Initiating geo from cronjob..');
-                    	request('http://localhost:' + port + '/api/getGeoIP', function(error){
-                   			console.error(error);
-							console.log('cronjob done...');
-                        });
-                    });
-               },5000)
-            });
+        	try {
+		        console.log('Initiating crawl from cronjob..');
+		        request('http://localhost:' + port + config.publicPath + '/api/crawl', function(){
+		           setTimeout(function(){
+						console.log('Initiating stats from cronjob..');
+		                request('http://localhost:' + port + config.publicPath + '/api/buildStats', function(){
+							console.log('Initiating geo from cronjob..');
+		                	request('http://localhost:' + port + config.publicPath + '/api/getGeoIP', function(){
+								console.log('cronjob done...');
+		                    });
+		                });
+		           },5000)
+		        });
+        	} catch (error) {
+        		console.error("Error during cronjob tick", error);
+        	}
         },
         start:true
     });
