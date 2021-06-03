@@ -110,22 +110,28 @@ server.on('listening', function(){
 		onTick: function() {
 			try {
 				console.log('Initiating crawl from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/crawl');
+				
 				request('http://localhost:' + port + config.publicPath + '/api/crawl', function(error){
 					if(error){
-			        	console.error("Could not request own API in cronjob");
-			        }
+						console.error("Could not request own API in cronjob");
+					}
+					
 					setTimeout(function(){
 						try {
 							console.log('Initiating stats from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/buildStats');
+							
 							request('http://localhost:' + port + config.publicPath + '/api/buildStats', function(error){
 								if(error){
-						        	console.error("Could not request own API in cronjob");
-						        }
+									console.error("Could not request own API in cronjob");
+								}
+								
 								console.log('Initiating geo from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/getGeoIP');
+								
 								request('http://localhost:' + port + config.publicPath + '/api/getGeoIP', function(error){
 									if(error){
-							        	console.error("Could not request own API in cronjob");
-							        }
+										console.error("Could not request own API in cronjob");
+									}
+									
 									console.log('cronjob done...');
 								});
 							});
