@@ -105,28 +105,41 @@ server.on('listening', function(){
     console.log('Listening on port '+port);
     console.log('Starting internal cron for crawl..');
 
-    cronjobs.crawl = new CronJob({
-        cronTime:'00 */7 * * * *',
-        onTick: function() {
-        	try {
-		        console.log('Initiating crawl from cronjob..');
-		        request('http://localhost:' + port + config.publicPath + '/api/crawl', function(){
-		           setTimeout(function(){
-						console.log('Initiating stats from cronjob..');
-		                request('http://localhost:' + port + config.publicPath + '/api/buildStats', function(){
-							console.log('Initiating geo from cronjob..');
-		                	request('http://localhost:' + port + config.publicPath + '/api/getGeoIP', function(){
-								console.log('cronjob done...');
-		                    });
-		                });
-		           },5000)
-		        });
-        	} catch (error) {
-        		console.error("Error during cronjob tick", error);
-        	}
-        },
-        start:true
-    });
+	cronjobs.crawl = new CronJob({
+		cronTime:'00 */7 * * * *',
+		onTick: function() {
+			try {
+				console.log('Initiating crawl from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/crawl');
+				request('http://localhost:' + port + config.publicPath + '/api/crawl', function(error){
+					if(error){
+			        	console.error("Could not request own API in cronjob");
+			        }
+					setTimeout(function(){
+						try {
+							console.log('Initiating stats from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/buildStats');
+							request('http://localhost:' + port + config.publicPath + '/api/buildStats', function(error){
+								if(error){
+						        	console.error("Could not request own API in cronjob");
+						        }
+								console.log('Initiating geo from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/getGeoIP');
+								request('http://localhost:' + port + config.publicPath + '/api/getGeoIP', function(error){
+									if(error){
+							        	console.error("Could not request own API in cronjob");
+							        }
+									console.log('cronjob done...');
+								});
+							});
+						} catch(error) {
+							console.error("Error during cronjob tick", error);
+						}
+					},5000)
+				});
+			} catch (error) {
+				console.error("Error during cronjob tick", error);
+			}
+		},
+		start:true
+	});
 
     cronjobs.pingOnlineNodes = new CronJob({
         cronTime:'0 0 0 * * *',
