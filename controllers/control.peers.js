@@ -45,6 +45,7 @@ function getGeoipUrl(ip){
 }
 
 function deactivate(ip,cb){
+	console.log("Deactivating " + ip);
     Peer.findOneAndUpdate({_id:ip}, {active:false, lastFetched:moment().toDate()}, function(err,res){
         if(err){
             cb(err,null);
@@ -223,16 +224,16 @@ exports.getstate = function(ip,cb,port){
         	if (defaultPort) {
         		console.log("Retrying on non-default port", config.nodeApiPort)
         		module.exports.getstate(ip,cb,config.nodeApiPort);
+        	} else {
+        		deactivate(ip, function(err, res){
+	                if(err) {
+	                    console.log('error:' + err);
+	                    cb(err,null);
+	                }else {
+	                    cb(error, null);
+	                }
+	            });
         	}
-        	
-            deactivate(ip, function(err, res){
-                if(err) {
-                    console.log('error:' + err);
-                    cb(err,null);
-                }else {
-                    cb(error, null);
-                }
-            });
         }else{
         	try {
 	            var data = JSON.parse(body);
