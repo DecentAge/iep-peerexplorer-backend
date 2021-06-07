@@ -23,7 +23,7 @@ const config = require('../core/config.js');
 
 const seed = config.seed;
 
-const sta = port + '/api?requestType=getPeerState';
+const sta = '/api?requestType=getPeerState';
 const suf = '/api?requestType=getPeers';
 
 const pre = 'http://';
