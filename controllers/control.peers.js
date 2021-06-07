@@ -23,7 +23,7 @@ const config = require('../core/config.js');
 
 const seed = config.seed;
 
-const sta = '/api?requestType=getPeerState';
+const sta = port + '/api?requestType=getPeerState';
 const suf = '/api?requestType=getPeers';
 
 const pre = 'http://';
@@ -203,14 +203,28 @@ exports.populate = function(ip, cb){
     })
 };
 
-exports.getstate = function(ip,cb){
+exports.getstate = function(ip,cb,port){
+	let portStr = "";
+	let defaultPort = true;
+	
+	if (typeof port !== "undefined" && port !== null) {
+		portStr = ":" + port;
+		defaultPort = false;
+	}
 
-    var url = pre+ip+sta;
+    var url = pre+ip+portStr+sta;
     
     console.log("Requesting " + url);
 
     request({uri:url,timeout:5000}, function (error, response, body) {
         if(error){
+        	console.log("Could not get peerstate for " + url, error);
+        	
+        	if (defaultPort) {
+        		console.log("Retrying on non-default port", config.nodeApiPort)
+        		module.exports.getstate(ip,cb,config.nodeApiPort);
+        	}
+        	
             deactivate(ip, function(err, res){
                 if(err) {
                     console.log('error:' + err);
