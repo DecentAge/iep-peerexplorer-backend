@@ -23,8 +23,8 @@ const config = require('../core/config.js');
 
 const seed = config.seed;
 
-const sta = '/api?requestType=getPeerState';
-const suf = '/api?requestType=getPeers';
+const sta = ':'+config.nodeApiPort+'/api?requestType=getPeerState';
+const suf = ':'+config.nodeApiPort+'/api?requestType=getPeers';
 
 const pre = 'http://';
 
@@ -48,6 +48,7 @@ function deactivate(ip,cb){
 	console.log("Deactivating " + ip);
     Peer.findOneAndUpdate({_id:ip}, {active:false, lastFetched:moment().toDate()}, function(err,res){
         if(err){
+            console.log("Could not deactivate " + ip, err);
             cb(err,null);
         }else{
             remove(ip,function(err,res){
@@ -58,11 +59,13 @@ function deactivate(ip,cb){
 }
 
 function remove(ip,cb){
+	console.log("Removing " + ip);
     State.remove({_id:ip}, function(err,res){
         if(err){
-            console.log(err);
+            console.log("Could not remove " + ip, err);
             cb(err,null);
         }else{
+        	console.log("Removed " + ip);
             cb(null,res);
         }
     });
@@ -181,7 +184,7 @@ exports.populate = function(ip, cb){
                 });
 
                 async.each(res, function(ip,cb){
-                    if(!list[ip]){
+                	if(!list[ip]){
                     	console.log("Saving peer " + ip + " to db");
                         var peer = new Peer({_id:ip});
                         peer.save(function(err){
@@ -204,36 +207,23 @@ exports.populate = function(ip, cb){
     })
 };
 
-exports.getstate = function(ip,cb,port){
-	let portStr = "";
-	let defaultPort = true;
-	
-	if (typeof port !== "undefined" && port !== null) {
-		portStr = ":" + port;
-		defaultPort = false;
-	}
+exports.getstate = function(ip,cb){
 
-    var url = pre+ip+portStr+sta;
+    var url = pre+ip+sta;
     
     console.log("Requesting " + url);
 
     request({uri:url,timeout:5000}, function (error, response, body) {
         if(error){
         	console.log("Could not get peerstate for " + url, error);
-        	
-        	if (defaultPort) {
-        		console.log("Retrying on non-default port", config.nodeApiPort)
-        		module.exports.getstate(ip,cb,config.nodeApiPort);
-        	} else {
-        		deactivate(ip, function(err, res){
-	                if(err) {
-	                    console.log('error:' + err);
-	                    cb(err,null);
-	                }else {
-	                    cb(error, null);
-	                }
-	            });
-        	}
+    		deactivate(ip, function(err, res){
+                if(err) {
+                    console.log('error:' + err);
+                    cb(err,null);
+                }else {
+                    cb(error, null);
+                }
+            });
         }else{
         	try {
 	            var data = JSON.parse(body);
