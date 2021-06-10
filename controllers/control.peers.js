@@ -28,8 +28,8 @@ const suf = ':'+config.nodeApiPort+'/api?requestType=getPeers';
 
 const pre = 'http://';
 
-const geoipServiceEndpoint = "http://api.ipstack.com/${ip}?access_key=${apiKey}";
-const geoipServiceApiKey = "36146f7aee7b529306116797068bff18";
+const geoipServiceEndpoint = "http://ip-api.com/json/${ip}";
+//const geoipServiceApiKey = "36146f7aee7b529306116797068bff18";
 
 var Peer = require('../models/model.peer.js');
 var State = require('../models/model.state.js');
@@ -40,7 +40,7 @@ var Blacklist = require('../models/model.blacklist');
 function getGeoipUrl(ip){
     var url = geoipServiceEndpoint;
     url = url.replace("${ip}", ip);
-    url = url.replace("${apiKey}", geoipServiceApiKey);
+    //url = url.replace("${apiKey}", geoipServiceApiKey);
     return url;
 }
 
@@ -496,30 +496,49 @@ exports.getGeoIP = function(force, cb){
             async.eachLimit(nodes,10,function(node,cb){
 
                 if(force || !node.geoipfetched){
+                    console.log('Getting geoip data for '+node._id, getGeoipUrl(node._id));
+                    
                     request({uri:getGeoipUrl(node._id),timeout:5000}, function (error, response, body) {
-
-                        console.log('Getting geoip data for '+node._id, getGeoipUrl(node._id));
-
-                        var geodata = {};
-                        
-                        try {
-	                        if(body)
-	                            geodata = JSON.parse(body);
-	
-	                        var data = {};
-	                        data.geoip = geodata;
-	                        data.geoipfetched = true;
-	
-	                        State.findOneAndUpdate({_id:node._id}, data, function(err,res){
-	                            if(err)
-	                                console.log(err);
-	                            cb();
-	                        });
-                        } catch(err) {
-                        	console.log("Could not fetch geoip data for "+node._id, err);
-                            cb(err,null)
+                    	if (error) {
+                            console.log('Could not get geoip data for '+node._id, error);
+                            cb(err,null);
+                        } else {	
+	                        var geodata = null;
+	                        
+	                        try {
+		                        if(body) {
+		                            geodata = JSON.parse(body);
+		                        }
+		                        
+		                        if (geodata.status !== 'success' || body === null) {
+		                            console.log('Could not get geoip data for '+node._id+', Service returned failed status, response: '+geodata.message);
+		                        	cb();
+		                        } else {
+			                        var data = {};
+			                        data.geoip = {
+		                        		country_code: geodata.countryCode,
+		                                country_name: geodata.country,
+		                                region_code: geodata.region,
+		                                region_name: geodata.regionName,
+		                                city: geodata.city,
+		                                zip_code: geodata.zip,
+		                                time_zone: geodata.timezone,
+		                                latitude: geodata.lat,
+		                                longitude: geodata.lon,
+			                        };
+			                        data.geoipfetched = true;
+			
+			                        State.findOneAndUpdate({_id:node._id}, data, function(err,res){
+			                            if(err)
+			                                console.log(err);
+			                            cb();
+			                        });
+		                        }
+	                        } catch(err) {
+	                        	console.log("Could not update geoip data for "+node._id, err);
+	                            cb(err,null)
+	                        }
                         }
-
                     });
                 }else{
                     cb();
