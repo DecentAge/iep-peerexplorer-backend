@@ -124,7 +124,7 @@ exports.fetch = function(ip,cb){
                 var peers = JSON.parse(body).peers;
                 cb(null, peers);
             } catch (e) {
-                cb(e,null);
+                console.log("Could not fetch " + url);
             }
         }
     });
@@ -485,7 +485,6 @@ exports.buildStats = function(cb){
                     }
                 } catch (e) {
                     console.log("Could not build node stats", err);
-                    cb(err, null)
                 }
 
             }
@@ -547,7 +546,6 @@ exports.getGeoIP = function(force, cb){
 		                        }
 	                        } catch(err) {
 	                        	console.log("Could not update geoip data for "+node._id, err);
-	                            cb(err,null)
 	                        }
                         }
                     });
