@@ -100,6 +100,8 @@ server = app.listen(port);
 
 cronjobs = {};
 
+var crawlLock = false;
+
 server.on('listening', function(){
 
     console.log('Listening on port '+port);
@@ -108,31 +110,40 @@ server.on('listening', function(){
 	cronjobs.crawl = new CronJob({
 		cronTime:'00 */7 * * * *',
 		onTick: function() {
-				console.log('Initiating crawl from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/crawl');
-				
-				request('http://localhost:' + port + config.publicPath + '/api/crawl', function(error){
-					if(error){
-						console.log("Could not request own API /api/crawl in cronjob", error);
-					}
+		    if (crawlLock) {
+		        console.log("Crawl job is locked, already running previous job, skipping");
+		        return;
+            } else {
+                console.log("Crawl job is not locked, proceed with job and lock");
+                crawlLock = true;
+            }
 
-                    console.log('Initiating stats from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/buildStats');
+            console.log('Initiating crawl from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/crawl');
 
-                    request('http://localhost:' + port + config.publicPath + '/api/buildStats', function(error){
-                        if(error){
-                            console.log("Could not request own API /api/buildStats in cronjob", error);
+            request('http://localhost:' + port + config.publicPath + '/api/crawl', function (error) {
+                if (error) {
+                    console.log("Could not request own API /api/crawl in cronjob", error);
+                }
+
+                console.log('Initiating stats from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/buildStats');
+
+                request('http://localhost:' + port + config.publicPath + '/api/buildStats', function (error) {
+                    if (error) {
+                        console.log("Could not request own API /api/buildStats in cronjob", error);
+                    }
+
+                    console.log('Initiating geo from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/getGeoIP');
+
+                    request('http://localhost:' + port + config.publicPath + '/api/getGeoIP', function (error) {
+                        if (error) {
+                            console.log("Could not request own API /api/getGeoIP in cronjob", error);
                         }
 
-                        console.log('Initiating geo from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/getGeoIP');
-
-                        request('http://localhost:' + port + config.publicPath + '/api/getGeoIP', function(error){
-                            if(error){
-                                console.log("Could not request own API /api/getGeoIP in cronjob", error);
-                            }
-
-                            console.log('cronjob done...');
-                        });
+                        console.log('cronjob done... unlocking crawl job');
+                        crawlLock = false;
                     });
-				});
+                });
+            });
 		},
 		start:true
 	});
