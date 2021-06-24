@@ -400,103 +400,97 @@ exports.clean = function(cb){
 };
 
 exports.buildStats = function(cb){
-    try {
-        Peer.find({}, function (err, peers) {
-            State.aggregate([
-                {
-                    $project: {
-                        activeNodes: {$cond: ["$activeNodes", 1, 0]},
-                        apiSSL: {$cond: ["$apiSSL", 1, 0]},
-                        apiCors: {$cond: ["$apiServerCORS", 1, 0]},
-                        apiEnabled: {$cond: ["$apiServerEnable", 1, 0]},
-                        withAutoFee: {$cond: ["$correctInvalidFees", 1, 0]},
-                        hallmarked: {$cond: ["$enableHallmarkProtection", 1, 0]},
-                        downloading: {$cond: ["$isDownloading", 1, 0]},
-                        scanning: {$cond: ["$isScanning", 1, 0]},
-                        useWebsocket: {$cond: ["$useWebsocket", 1, 0]},
-                        gatewayIPFS: {$cond: ["$gatewayIPFS", 1, 0]},
-                        gatewayTendermint: {$cond: ["$gatewayTendermint", 1, 0]},
-                        gatewayZeroNet: {$cond: ["$gatewayZeroNet", 1, 0]},
-                        proxyBTC: {$cond: ["$proxyBTC", 1, 0]},
-                        proxyETH: {$cond: ["$proxyETH", 1, 0]},
-                        proxyLTC: {$cond: ["$proxyLTC", 1, 0]},
-                        proxyMarket: {$cond: ["$proxyMarket", 1, 0]},
-                        proxyXRP: {$cond: ["$proxyXRP", 1, 0]},
-                        storageElastic: {$cond: ["$storageElastic", 1, 0]},
-                        storageMongodb: {$cond: ["$storageMongodb", 1, 0]},
-                        storageMySQL: {$cond: ["$storageMySQL", 1, 0]},
-                        storagePSQL: {$cond: ["$storagePSQL", 1, 0]},
-                        storageRethink: {$cond: ["$storageRethink", 1, 0]}
-                    }
-                },
-                {
-                    $group: {
-                        _id: "nodeStats",
-                        activeNodes: {$sum: 1},
-                        apiSSL: {$sum: "$apiSSL"},
-                        apiCors: {$sum: "$apiCors"},
-                        apiEnabled: {$sum: "$apiEnabled"},
-                        withAutoFee: {$sum: "$withAutoFee"},
-                        hallmarked: {$sum: "$hallmarked"},
-                        downloading: {$sum: "$downloading"},
-                        scanning: {$sum: "$scanning"},
-                        useWebsocket: {$sum: "$useWebsocket"},
-                        gatewayIPFS: {$sum: "$gatewayIPFS"},
-                        gatewayTendermint: {$sum: "$gatewayTendermint"},
-                        gatewayZeroNet: {$sum: "$gatewayZeroNet"},
-                        proxyBTC: {$sum: "$proxyBTC"},
-                        proxyETH: {$sum: "$proxyETH"},
-                        proxyLTC: {$sum: "$proxyLTC"},
-                        proxyMarket: {$sum: "$proxyMarket"},
-                        proxyXRP: {$sum: "$proxyXRP"},
-                        storageElastic: {$sum: "$storageElastic"},
-                        storageMongodb: {$sum: "$storageMongodb"},
-                        storageMySQL: {$sum: "$storageMySQL"},
-                        storagePSQL: {$sum: "$storagePSQL"},
-                        storageRethink: {$sum: "$storageRethink"}
-                    }
+    Peer.find({}, function (err, peers) {
+        State.aggregate([
+            {
+                $project: {
+                    activeNodes: {$cond: ["$activeNodes", 1, 0]},
+                    apiSSL: {$cond: ["$apiSSL", 1, 0]},
+                    apiCors: {$cond: ["$apiServerCORS", 1, 0]},
+                    apiEnabled: {$cond: ["$apiServerEnable", 1, 0]},
+                    withAutoFee: {$cond: ["$correctInvalidFees", 1, 0]},
+                    hallmarked: {$cond: ["$enableHallmarkProtection", 1, 0]},
+                    downloading: {$cond: ["$isDownloading", 1, 0]},
+                    scanning: {$cond: ["$isScanning", 1, 0]},
+                    useWebsocket: {$cond: ["$useWebsocket", 1, 0]},
+                    gatewayIPFS: {$cond: ["$gatewayIPFS", 1, 0]},
+                    gatewayTendermint: {$cond: ["$gatewayTendermint", 1, 0]},
+                    gatewayZeroNet: {$cond: ["$gatewayZeroNet", 1, 0]},
+                    proxyBTC: {$cond: ["$proxyBTC", 1, 0]},
+                    proxyETH: {$cond: ["$proxyETH", 1, 0]},
+                    proxyLTC: {$cond: ["$proxyLTC", 1, 0]},
+                    proxyMarket: {$cond: ["$proxyMarket", 1, 0]},
+                    proxyXRP: {$cond: ["$proxyXRP", 1, 0]},
+                    storageElastic: {$cond: ["$storageElastic", 1, 0]},
+                    storageMongodb: {$cond: ["$storageMongodb", 1, 0]},
+                    storageMySQL: {$cond: ["$storageMySQL", 1, 0]},
+                    storagePSQL: {$cond: ["$storagePSQL", 1, 0]},
+                    storageRethink: {$cond: ["$storageRethink", 1, 0]}
                 }
-            ], function (err, result) {
-                if (err) {
-                    console.log(err);
-                    cb(err, null);
-                } else {
-                    try {
-                        if (result.length) {
-
-                            var data = result[0];
-
-                            delete data._id;
-
-                            data.totalNodes = peers.length;
-
-                            Stats.findOneAndUpdate({_id: 'nodeStats'}, data, {upsert: true}, function (err, doc) {
-                                if (err) {
-                                    console.log(err);
-                                    cb(err, null)
-                                } else {
-                                    cb(null, doc);
-                                }
-                            });
-
-                        } else {
-
-                            cb('No peers in db. No stats compiled.');
-
-                        }
-                    } catch (e) {
-                        console.log("Could not build node stats", err);
-                        cb(err, null)
-                    }
-
+            },
+            {
+                $group: {
+                    _id: "nodeStats",
+                    activeNodes: {$sum: 1},
+                    apiSSL: {$sum: "$apiSSL"},
+                    apiCors: {$sum: "$apiCors"},
+                    apiEnabled: {$sum: "$apiEnabled"},
+                    withAutoFee: {$sum: "$withAutoFee"},
+                    hallmarked: {$sum: "$hallmarked"},
+                    downloading: {$sum: "$downloading"},
+                    scanning: {$sum: "$scanning"},
+                    useWebsocket: {$sum: "$useWebsocket"},
+                    gatewayIPFS: {$sum: "$gatewayIPFS"},
+                    gatewayTendermint: {$sum: "$gatewayTendermint"},
+                    gatewayZeroNet: {$sum: "$gatewayZeroNet"},
+                    proxyBTC: {$sum: "$proxyBTC"},
+                    proxyETH: {$sum: "$proxyETH"},
+                    proxyLTC: {$sum: "$proxyLTC"},
+                    proxyMarket: {$sum: "$proxyMarket"},
+                    proxyXRP: {$sum: "$proxyXRP"},
+                    storageElastic: {$sum: "$storageElastic"},
+                    storageMongodb: {$sum: "$storageMongodb"},
+                    storageMySQL: {$sum: "$storageMySQL"},
+                    storagePSQL: {$sum: "$storagePSQL"},
+                    storageRethink: {$sum: "$storageRethink"}
                 }
-            });
+            }
+        ], function (err, result) {
+            if (err) {
+                console.log(err);
+                cb(err, null);
+            } else {
+                try {
+                    if (result.length) {
+
+                        var data = result[0];
+
+                        delete data._id;
+
+                        data.totalNodes = peers.length;
+
+                        Stats.findOneAndUpdate({_id: 'nodeStats'}, data, {upsert: true}, function (err, doc) {
+                            if (err) {
+                                console.log(err);
+                                cb(err, null)
+                            } else {
+                                cb(null, doc);
+                            }
+                        });
+
+                    } else {
+
+                        cb('No peers in db. No stats compiled.');
+
+                    }
+                } catch (e) {
+                    console.log("Could not build node stats", err);
+                    cb(err, null)
+                }
+
+            }
         });
-    } catch (err) {
-        console.log("Could not build node stats", err);
-        cb(err, null)
-    }
-
+    });
 };
 
 exports.getGeoIP = function(force, cb){
