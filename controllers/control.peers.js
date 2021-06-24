@@ -176,6 +176,7 @@ exports.seed = function(cb){
 exports.populate = function(ip, cb){
     module.exports.fetch(ip,function(err,res){
         if(err){
+            console.log("Could not populate");
             cb(err,null);
         }else{
 
@@ -269,8 +270,9 @@ exports.getstate = function(ip,cb){
 	                    }
 	
 	                    State.findOneAndUpdate({_id:ip}, data, {upsert:true, new: true}, function(err,res){
-	                        if(err)
-	                            console.log(err);
+	                        if(err) {
+                                console.log(err);
+                            }
 	                    });
 	
 	                });
@@ -324,7 +326,7 @@ exports.crawl = function(now, checked, cb){
 
                         if(err){
                             // console.log(err);
-                            cb();
+                            cb(err);
                         }else{
                             module.exports.populate(obj._id, function(err, res){
                                 cb();
@@ -398,106 +400,117 @@ exports.clean = function(cb){
 };
 
 exports.buildStats = function(cb){
-
-    Peer.find({}, function(err,peers) {
-        State.aggregate([
-            {
-                $project: {
-                    activeNodes: {$cond:["$activeNodes",1,0]},
-                    apiSSL: {$cond:["$apiSSL",1,0]},
-                    apiCors: {$cond:["$apiServerCORS",1,0]},
-                    apiEnabled: {$cond:["$apiServerEnable",1,0]},
-                    withAutoFee: {$cond:["$correctInvalidFees",1,0]},
-                    hallmarked: {$cond:["$enableHallmarkProtection",1,0]},
-                    downloading: {$cond:["$isDownloading",1,0]},
-                    scanning: {$cond:["$isScanning",1,0]},
-                    useWebsocket: {$cond:["$useWebsocket",1,0]},
-                    gatewayIPFS: {$cond:["$gatewayIPFS",1,0]},
-                    gatewayTendermint: {$cond:["$gatewayTendermint",1,0]},
-                    gatewayZeroNet: {$cond:["$gatewayZeroNet",1,0]},
-                    proxyBTC: {$cond:["$proxyBTC",1,0]},
-                    proxyETH: {$cond:["$proxyETH",1,0]},
-                    proxyLTC: {$cond:["$proxyLTC",1,0]},
-                    proxyMarket: {$cond:["$proxyMarket",1,0]},
-                    proxyXRP: {$cond:["$proxyXRP",1,0]},
-                    storageElastic: {$cond:["$storageElastic",1,0]},
-                    storageMongodb: {$cond:["$storageMongodb",1,0]},
-                    storageMySQL: {$cond:["$storageMySQL",1,0]},
-                    storagePSQL: {$cond:["$storagePSQL",1,0]},
-                    storageRethink: {$cond:["$storageRethink",1,0]}
+    try {
+        Peer.find({}, function (err, peers) {
+            State.aggregate([
+                {
+                    $project: {
+                        activeNodes: {$cond: ["$activeNodes", 1, 0]},
+                        apiSSL: {$cond: ["$apiSSL", 1, 0]},
+                        apiCors: {$cond: ["$apiServerCORS", 1, 0]},
+                        apiEnabled: {$cond: ["$apiServerEnable", 1, 0]},
+                        withAutoFee: {$cond: ["$correctInvalidFees", 1, 0]},
+                        hallmarked: {$cond: ["$enableHallmarkProtection", 1, 0]},
+                        downloading: {$cond: ["$isDownloading", 1, 0]},
+                        scanning: {$cond: ["$isScanning", 1, 0]},
+                        useWebsocket: {$cond: ["$useWebsocket", 1, 0]},
+                        gatewayIPFS: {$cond: ["$gatewayIPFS", 1, 0]},
+                        gatewayTendermint: {$cond: ["$gatewayTendermint", 1, 0]},
+                        gatewayZeroNet: {$cond: ["$gatewayZeroNet", 1, 0]},
+                        proxyBTC: {$cond: ["$proxyBTC", 1, 0]},
+                        proxyETH: {$cond: ["$proxyETH", 1, 0]},
+                        proxyLTC: {$cond: ["$proxyLTC", 1, 0]},
+                        proxyMarket: {$cond: ["$proxyMarket", 1, 0]},
+                        proxyXRP: {$cond: ["$proxyXRP", 1, 0]},
+                        storageElastic: {$cond: ["$storageElastic", 1, 0]},
+                        storageMongodb: {$cond: ["$storageMongodb", 1, 0]},
+                        storageMySQL: {$cond: ["$storageMySQL", 1, 0]},
+                        storagePSQL: {$cond: ["$storagePSQL", 1, 0]},
+                        storageRethink: {$cond: ["$storageRethink", 1, 0]}
+                    }
+                },
+                {
+                    $group: {
+                        _id: "nodeStats",
+                        activeNodes: {$sum: 1},
+                        apiSSL: {$sum: "$apiSSL"},
+                        apiCors: {$sum: "$apiCors"},
+                        apiEnabled: {$sum: "$apiEnabled"},
+                        withAutoFee: {$sum: "$withAutoFee"},
+                        hallmarked: {$sum: "$hallmarked"},
+                        downloading: {$sum: "$downloading"},
+                        scanning: {$sum: "$scanning"},
+                        useWebsocket: {$sum: "$useWebsocket"},
+                        gatewayIPFS: {$sum: "$gatewayIPFS"},
+                        gatewayTendermint: {$sum: "$gatewayTendermint"},
+                        gatewayZeroNet: {$sum: "$gatewayZeroNet"},
+                        proxyBTC: {$sum: "$proxyBTC"},
+                        proxyETH: {$sum: "$proxyETH"},
+                        proxyLTC: {$sum: "$proxyLTC"},
+                        proxyMarket: {$sum: "$proxyMarket"},
+                        proxyXRP: {$sum: "$proxyXRP"},
+                        storageElastic: {$sum: "$storageElastic"},
+                        storageMongodb: {$sum: "$storageMongodb"},
+                        storageMySQL: {$sum: "$storageMySQL"},
+                        storagePSQL: {$sum: "$storagePSQL"},
+                        storageRethink: {$sum: "$storageRethink"}
+                    }
                 }
-            },
-            {
-                $group: {
-                    _id: "nodeStats",
-                    activeNodes: {$sum: 1},
-                    apiSSL: {$sum: "$apiSSL"},
-                    apiCors: {$sum: "$apiCors"},
-                    apiEnabled: {$sum: "$apiEnabled"},
-                    withAutoFee: {$sum: "$withAutoFee"},
-                    hallmarked: {$sum: "$hallmarked"},
-                    downloading: {$sum: "$downloading"},
-                    scanning: {$sum: "$scanning"},
-                    useWebsocket: {$sum: "$useWebsocket"},
-                    gatewayIPFS: {$sum: "$gatewayIPFS"},
-                    gatewayTendermint: {$sum: "$gatewayTendermint"},
-                    gatewayZeroNet: {$sum: "$gatewayZeroNet"},
-                    proxyBTC: {$sum: "$proxyBTC"},
-                    proxyETH: {$sum: "$proxyETH"},
-                    proxyLTC: {$sum: "$proxyLTC"},
-                    proxyMarket: {$sum: "$proxyMarket"},
-                    proxyXRP: {$sum: "$proxyXRP"},
-                    storageElastic: {$sum: "$storageElastic"},
-                    storageMongodb: {$sum: "$storageMongodb"},
-                    storageMySQL: {$sum: "$storageMySQL"},
-                    storagePSQL: {$sum: "$storagePSQL"},
-                    storageRethink: {$sum:"$storageRethink"}
-                }
-            }
-        ], function (err, result) {
-            if (err) {
-                console.log(err);
-                cb(err,null);
-            } else {
+            ], function (err, result) {
+                if (err) {
+                    console.log(err);
+                    cb(err, null);
+                } else {
+                    try {
+                        if (result.length) {
 
-                if(result.length) {
+                            var data = result[0];
 
-                    var data = result[0];
+                            delete data._id;
 
-                    delete data._id;
+                            data.totalNodes = peers.length;
 
-                    data.totalNodes = peers.length;
+                            Stats.findOneAndUpdate({_id: 'nodeStats'}, data, {upsert: true}, function (err, doc) {
+                                if (err) {
+                                    console.log(err);
+                                    cb(err, null)
+                                } else {
+                                    cb(null, doc);
+                                }
+                            });
 
-                    Stats.findOneAndUpdate({_id: 'nodeStats'}, data, {upsert: true}, function (err, doc) {
-                        if (err) {
-                            console.log(err);
-                            cb(err, null)
                         } else {
-                            cb(null, doc);
+
+                            cb('No peers in db. No stats compiled.');
+
                         }
-                    });
-
-                }else{
-
-                    cb('No peers in db. No stats compiled.');
+                    } catch (e) {
+                        console.log("Could not build node stats", err);
+                        cb(err, null)
+                    }
 
                 }
-
-            }
+            });
         });
-    });
+    } catch (err) {
+        console.log("Could not build node stats", err);
+        cb(err, null)
+    }
 
 };
 
 exports.getGeoIP = function(force, cb){
+    console.log("Entering getGeoIP geoip - force=" + force);
 
     State.find({}, function(err,nodes){
 
         if(err){
-            console.log(err);
+            console.log('Could not get states for geoip', err);
             cb(err,null)
         }else{
+            console.log('States retrieved, going to fetch geoip for ' + nodes.length + ' nodes');
             async.eachLimit(nodes,10,function(node,cb){
+                console.log("geoip node.geoipfetched=", node.geoipfetched);
 
                 if(force || !node.geoipfetched){
                     console.log('Getting geoip data for '+node._id, getGeoipUrl(node._id));
