@@ -114,26 +114,24 @@ server.on('listening', function(){
 					if(error){
 						console.log("Could not request own API /api/crawl in cronjob", error);
 					}
-					
-					setTimeout(function(){
-							console.log('Initiating stats from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/buildStats');
-							
-							request('http://localhost:' + port + config.publicPath + '/api/buildStats', function(error){
-								if(error){
-									console.log("Could not request own API /api/buildStats in cronjob", error);
-								}
-								
-								console.log('Initiating geo from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/getGeoIP');
-								
-								request('http://localhost:' + port + config.publicPath + '/api/getGeoIP', function(error){
-									if(error){
-										console.log("Could not request own API /api/getGeoIP in cronjob", error);
-									}
-									
-									console.log('cronjob done...');
-								});
-							});
-					},5000)
+
+                    console.log('Initiating stats from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/buildStats');
+
+                    request('http://localhost:' + port + config.publicPath + '/api/buildStats', function(error){
+                        if(error){
+                            console.log("Could not request own API /api/buildStats in cronjob", error);
+                        }
+
+                        console.log('Initiating geo from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/getGeoIP');
+
+                        request('http://localhost:' + port + config.publicPath + '/api/getGeoIP', function(error){
+                            if(error){
+                                console.log("Could not request own API /api/getGeoIP in cronjob", error);
+                            }
+
+                            console.log('cronjob done...');
+                        });
+                    });
 				});
 		},
 		start:true
