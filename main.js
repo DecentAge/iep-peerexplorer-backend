@@ -112,7 +112,7 @@ server.on('listening', function(){
 				
 				request('http://localhost:' + port + config.publicPath + '/api/crawl', function(error){
 					if(error){
-						console.error("Could not request own API /api/crawl in cronjob", error);
+						console.log("Could not request own API /api/crawl in cronjob", error);
 					}
 					
 					setTimeout(function(){
@@ -120,14 +120,14 @@ server.on('listening', function(){
 							
 							request('http://localhost:' + port + config.publicPath + '/api/buildStats', function(error){
 								if(error){
-									console.error("Could not request own API /api/buildStats in cronjob", error);
+									console.log("Could not request own API /api/buildStats in cronjob", error);
 								}
 								
 								console.log('Initiating geo from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/getGeoIP');
 								
 								request('http://localhost:' + port + config.publicPath + '/api/getGeoIP', function(error){
 									if(error){
-										console.error("Could not request own API /api/getGeoIP in cronjob", error);
+										console.log("Could not request own API /api/getGeoIP in cronjob", error);
 									}
 									
 									console.log('cronjob done...');
