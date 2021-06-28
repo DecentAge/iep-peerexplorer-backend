@@ -120,12 +120,7 @@ exports.fetch = function(ip,cb){
         	console.log("Could not fetch " + url);
             cb(error,null);
         }else{
-            var peers = null;
-            try {
-                peers = JSON.parse(body).peers;
-            } catch (err) {
-                console.log("Could not fetch " + url, err)
-            }
+            var peers = JSON.parse(body).peers;
             cb(null, peers);
         }
     });
@@ -270,9 +265,8 @@ exports.getstate = function(ip,cb){
 	                    }
 	
 	                    State.findOneAndUpdate({_id:ip}, data, {upsert:true, new: true}, function(err,res){
-	                        if(err) {
-                                console.log(err);
-                            }
+	                        if(err)
+	                            console.log(err);
 	                    });
 	
 	                });
@@ -326,7 +320,7 @@ exports.crawl = function(now, checked, cb){
 
                         if(err){
                             // console.log(err);
-                            cb(err);
+                            cb();
                         }else{
                             module.exports.populate(obj._id, function(err, res){
                                 cb();
@@ -459,7 +453,7 @@ exports.buildStats = function(cb){
         ], function (err, result) {
             if (err) {
                 console.log(err);
-                cb(err, null);
+                cb(err,null);
             } else {
 
                 if(result.length) {
