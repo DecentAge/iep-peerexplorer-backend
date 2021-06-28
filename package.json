@@ -6,6 +6,7 @@
   "author": "Infinity Community Development Team",
   "scripts": {
     "update-version": "npm version $npm_config_release_version --allow-same-version --git-tag-version false",
+    "start-inspect": "node --inspect=0.0.0.0:9229 main",
     "start": "node main"
   },
   "dependencies": {
