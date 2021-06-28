@@ -120,12 +120,13 @@ exports.fetch = function(ip,cb){
         	console.log("Could not fetch " + url);
             cb(error,null);
         }else{
+            var peers = null;
             try {
-                var peers = JSON.parse(body).peers;
-                cb(null, peers);
-            } catch (e) {
-                console.log("Could not fetch " + url);
+                peers = JSON.parse(body).peers;
+            } catch (err) {
+                console.log("Could not fetch " + url, err)
             }
+            cb(null, peers);
         }
     });
 
@@ -176,7 +177,6 @@ exports.seed = function(cb){
 exports.populate = function(ip, cb){
     module.exports.fetch(ip,function(err,res){
         if(err){
-            console.log("Could not populate");
             cb(err,null);
         }else{
 
@@ -400,32 +400,33 @@ exports.clean = function(cb){
 };
 
 exports.buildStats = function(cb){
-    Peer.find({}, function (err, peers) {
+
+    Peer.find({}, function(err,peers) {
         State.aggregate([
             {
                 $project: {
-                    activeNodes: {$cond: ["$activeNodes", 1, 0]},
-                    apiSSL: {$cond: ["$apiSSL", 1, 0]},
-                    apiCors: {$cond: ["$apiServerCORS", 1, 0]},
-                    apiEnabled: {$cond: ["$apiServerEnable", 1, 0]},
-                    withAutoFee: {$cond: ["$correctInvalidFees", 1, 0]},
-                    hallmarked: {$cond: ["$enableHallmarkProtection", 1, 0]},
-                    downloading: {$cond: ["$isDownloading", 1, 0]},
-                    scanning: {$cond: ["$isScanning", 1, 0]},
-                    useWebsocket: {$cond: ["$useWebsocket", 1, 0]},
-                    gatewayIPFS: {$cond: ["$gatewayIPFS", 1, 0]},
-                    gatewayTendermint: {$cond: ["$gatewayTendermint", 1, 0]},
-                    gatewayZeroNet: {$cond: ["$gatewayZeroNet", 1, 0]},
-                    proxyBTC: {$cond: ["$proxyBTC", 1, 0]},
-                    proxyETH: {$cond: ["$proxyETH", 1, 0]},
-                    proxyLTC: {$cond: ["$proxyLTC", 1, 0]},
-                    proxyMarket: {$cond: ["$proxyMarket", 1, 0]},
-                    proxyXRP: {$cond: ["$proxyXRP", 1, 0]},
-                    storageElastic: {$cond: ["$storageElastic", 1, 0]},
-                    storageMongodb: {$cond: ["$storageMongodb", 1, 0]},
-                    storageMySQL: {$cond: ["$storageMySQL", 1, 0]},
-                    storagePSQL: {$cond: ["$storagePSQL", 1, 0]},
-                    storageRethink: {$cond: ["$storageRethink", 1, 0]}
+                    activeNodes: {$cond:["$activeNodes",1,0]},
+                    apiSSL: {$cond:["$apiSSL",1,0]},
+                    apiCors: {$cond:["$apiServerCORS",1,0]},
+                    apiEnabled: {$cond:["$apiServerEnable",1,0]},
+                    withAutoFee: {$cond:["$correctInvalidFees",1,0]},
+                    hallmarked: {$cond:["$enableHallmarkProtection",1,0]},
+                    downloading: {$cond:["$isDownloading",1,0]},
+                    scanning: {$cond:["$isScanning",1,0]},
+                    useWebsocket: {$cond:["$useWebsocket",1,0]},
+                    gatewayIPFS: {$cond:["$gatewayIPFS",1,0]},
+                    gatewayTendermint: {$cond:["$gatewayTendermint",1,0]},
+                    gatewayZeroNet: {$cond:["$gatewayZeroNet",1,0]},
+                    proxyBTC: {$cond:["$proxyBTC",1,0]},
+                    proxyETH: {$cond:["$proxyETH",1,0]},
+                    proxyLTC: {$cond:["$proxyLTC",1,0]},
+                    proxyMarket: {$cond:["$proxyMarket",1,0]},
+                    proxyXRP: {$cond:["$proxyXRP",1,0]},
+                    storageElastic: {$cond:["$storageElastic",1,0]},
+                    storageMongodb: {$cond:["$storageMongodb",1,0]},
+                    storageMySQL: {$cond:["$storageMySQL",1,0]},
+                    storagePSQL: {$cond:["$storagePSQL",1,0]},
+                    storageRethink: {$cond:["$storageRethink",1,0]}
                 }
             },
             {
@@ -452,7 +453,7 @@ exports.buildStats = function(cb){
                     storageMongodb: {$sum: "$storageMongodb"},
                     storageMySQL: {$sum: "$storageMySQL"},
                     storagePSQL: {$sum: "$storagePSQL"},
-                    storageRethink: {$sum: "$storageRethink"}
+                    storageRethink: {$sum:"$storageRethink"}
                 }
             }
         ], function (err, result) {
@@ -460,36 +461,34 @@ exports.buildStats = function(cb){
                 console.log(err);
                 cb(err, null);
             } else {
-                try {
-                    if (result.length) {
 
-                        var data = result[0];
+                if(result.length) {
 
-                        delete data._id;
+                    var data = result[0];
 
-                        data.totalNodes = peers.length;
+                    delete data._id;
 
-                        Stats.findOneAndUpdate({_id: 'nodeStats'}, data, {upsert: true}, function (err, doc) {
-                            if (err) {
-                                console.log(err);
-                                cb(err, null)
-                            } else {
-                                cb(null, doc);
-                            }
-                        });
+                    data.totalNodes = peers.length;
 
-                    } else {
+                    Stats.findOneAndUpdate({_id: 'nodeStats'}, data, {upsert: true}, function (err, doc) {
+                        if (err) {
+                            console.log(err);
+                            cb(err, null)
+                        } else {
+                            cb(null, doc);
+                        }
+                    });
 
-                        cb('No peers in db. No stats compiled.');
+                }else{
 
-                    }
-                } catch (e) {
-                    console.log("Could not build node stats", err);
+                    cb('No peers in db. No stats compiled.');
+
                 }
 
             }
         });
     });
+
 };
 
 exports.getGeoIP = function(force, cb){
@@ -546,6 +545,7 @@ exports.getGeoIP = function(force, cb){
 		                        }
 	                        } catch(err) {
 	                        	console.log("Could not update geoip data for "+node._id, err);
+	                            cb(err,null)
 	                        }
                         }
                     });
