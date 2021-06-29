@@ -144,7 +144,8 @@ server.on('listening', function(){
 				console.error("Error during cronjob tick", error);
 			}
 		},
-		start:true
+		start:true,
+        runOnInit: true,
 	});
 
     cronjobs.pingOnlineNodes = new CronJob({
@@ -195,4 +196,8 @@ server.on('listening', function(){
     });
 
 
+});
+
+process.on('uncaughtException', function (err) {
+    console.log('******* Unexpected Error *******', err);
 });

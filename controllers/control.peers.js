@@ -120,8 +120,18 @@ exports.fetch = function(ip,cb){
         	console.log("Could not fetch " + url);
             cb(error,null);
         }else{
-            var peers = JSON.parse(body).peers;
-            cb(null, peers);
+            var json = null;
+            try {
+                json = JSON.parse(body);
+            } catch(err) {
+                console.log("Could not parse json from " + url);
+            }
+
+            if (json && json.peers) {
+                cb(null, json.peers);
+            } else {
+                cb("Could not parse json from " + url, null);
+            }
         }
     });
 
