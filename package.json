@@ -7,6 +7,7 @@
   "scripts": {
     "update-version": "npm version $npm_config_release_version --allow-same-version --git-tag-version false",
     "start-inspect": "node --inspect=0.0.0.0:9229 main",
+    "start-debug": "node -debug-brk=0.0.0.0:5858 main",
     "start": "node main"
   },
   "dependencies": {
