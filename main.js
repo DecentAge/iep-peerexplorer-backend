@@ -108,7 +108,6 @@ server.on('listening', function(){
 	cronjobs.crawl = new CronJob({
 		cronTime:'00 */7 * * * *',
 		onTick: function() {
-			try {
 				console.log('Initiating crawl from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/crawl');
 
 				request('http://localhost:' + port + config.publicPath + '/api/crawl', function(error){
@@ -117,7 +116,6 @@ server.on('listening', function(){
 					}
 
 					setTimeout(function(){
-						try {
 							console.log('Initiating stats from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/buildStats');
 
 							request('http://localhost:' + port + config.publicPath + '/api/buildStats', function(error){
@@ -135,14 +133,8 @@ server.on('listening', function(){
 									console.log('cronjob done...');
 								});
 							});
-						} catch(error) {
-							console.error("Error during cronjob tick", error);
-						}
 					},5000)
 				});
-			} catch (error) {
-				console.error("Error during cronjob tick", error);
-			}
 		},
 		start:true,
         runOnInit: true,

@@ -158,13 +158,25 @@ exports.seed = function(cb){
 
                 async.each(res, function(ip,cb){
                     if(!list[ip]){
-                    	console.log("Saving peer " + ip + " to db");
-                        var peer = new Peer({_id:ip});
-                        peer.save(function(err){
-                        	if(err){
-                            	console.log("Could not save peer " + ip + " to db", err);
+                        
+                        Peer.exists({_id:ip}, function (error, exists) {
+                            if (error) {
+                                console.log("Error checking existance ip = " + ip, error)
                             }
-                            cb();
+                            
+                            if (!exists) {
+                                console.log("Saving peer " + ip + " to db");
+                                var peer = new Peer({_id:ip});
+                                peer.save(function(err){
+                                    if(err){
+                                        console.log("Could not save peer " + ip + " to db", err);
+                                    }
+                                    cb();
+                                });
+                            } else {
+                                console.log("Peer already exists " + ip + ", skipping");
+                                cb();
+                            }
                         });
                     }else{
                         console.log(ip+' is blacklisted.');
@@ -195,13 +207,24 @@ exports.populate = function(ip, cb){
 
                 async.each(res, function(ip,cb){
                 	if(!list[ip]){
-                    	console.log("Saving peer " + ip + " to db");
-                        var peer = new Peer({_id:ip});
-                        peer.save(function(err){
-                        	if(err){
-                            	console.log("Could not save peer " + ip + " to db", err);
+                        Peer.exists({_id:ip}, function (error, exists) {
+                            if (error) {
+                                console.log("Error checking existance ip = " + ip, error)
                             }
-                            cb();
+
+                            if (!exists) {
+                                console.log("Saving peer " + ip + " to db");
+                                var peer = new Peer({_id:ip});
+                                peer.save(function(err){
+                                    if(err){
+                                        console.log("Could not save peer " + ip + " to db", err);
+                                    }
+                                    cb();
+                                });
+                            } else {
+                                console.log("Peer already exists " + ip + ", skipping");
+                                cb();
+                            }
                         });
                     }else{
                         console.log(ip+' is blacklisted.');
@@ -496,7 +519,7 @@ exports.buildStats = function(cb){
 };
 
 exports.getGeoIP = function(force, cb){
-    console.log("Entering getGeoIP geoip - force=" + force);
+    console.log("Entering getGeoIP geoip");
 
     State.find({}, function(err,nodes){
 
@@ -517,40 +540,40 @@ exports.getGeoIP = function(force, cb){
                             cb(err,null);
                         } else {	
 	                        var geodata = null;
-	                        
-	                        try {
-		                        if(body) {
-		                            geodata = JSON.parse(body);
-		                        }
-		                        
-		                        if (geodata.status !== 'success' || body === null) {
-		                            console.log('Could not get geoip data for '+node._id+', Service returned failed status, response: '+geodata.message);
-		                        	cb();
-		                        } else {
-			                        var data = {};
-			                        data.geoip = {
-		                        		country_code: geodata.countryCode,
-		                                country_name: geodata.country,
-		                                region_code: geodata.region,
-		                                region_name: geodata.regionName,
-		                                city: geodata.city,
-		                                zip_code: geodata.zip,
-		                                time_zone: geodata.timezone,
-		                                latitude: geodata.lat,
-		                                longitude: geodata.lon,
-			                        };
-			                        data.geoipfetched = true;
-			
-			                        State.findOneAndUpdate({_id:node._id}, data, function(err,res){
-			                            if(err)
-			                                console.log(err);
-			                            cb();
-			                        });
-		                        }
-	                        } catch(err) {
-	                        	console.log("Could not update geoip data for "+node._id, err);
-	                            cb(err,null)
-	                        }
+
+                            try {
+                                geodata = JSON.parse(body);
+                            } catch(err) {
+                                console.log("Could not parse geoip data for "+node._id, err);
+                                cb(err)
+                            }
+
+                            if (geodata) {
+                                if (body === null || geodata.status !== 'success') {
+                                    console.log('Could not get geoip data for ' + node._id + ', Service returned failed status, response: ', geodata.message);
+                                    cb();
+                                } else {
+                                    var data = {};
+                                    data.geoip = {
+                                        country_code: geodata.countryCode,
+                                        country_name: geodata.country,
+                                        region_code: geodata.region,
+                                        region_name: geodata.regionName,
+                                        city: geodata.city,
+                                        zip_code: geodata.zip,
+                                        time_zone: geodata.timezone,
+                                        latitude: geodata.lat,
+                                        longitude: geodata.lon,
+                                    };
+                                    data.geoipfetched = true;
+
+                                    State.findOneAndUpdate({_id: node._id}, data, function (err, res) {
+                                        if (err)
+                                            console.log(err);
+                                        cb();
+                                    });
+                                }
+                            }
                         }
                     });
                 }else{
