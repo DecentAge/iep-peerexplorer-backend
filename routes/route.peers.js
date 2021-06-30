@@ -67,6 +67,8 @@ module.exports = function(router) {
     router.route('/api/crawl')
         .get(function (req, res) {
 
+            console.log("Entering /api/crawl");
+
              if(!isLocal(req))
                  return res.send({code:400, success:false, message:'This endpoint is not remotely accessible.'});
 
@@ -128,6 +130,8 @@ module.exports = function(router) {
 
     router.route('/api/buildStats')
         .get(function (req, res) {
+
+            console.log("Entering /api/buildStats");
 
             if(!isLocal(req))
                 return res.send({code:400, success:false, message:'This endpoint is not remotely accessible.'});
