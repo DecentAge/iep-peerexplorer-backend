@@ -71,6 +71,7 @@ var Stats = require('./models/model.stats');
 
 app.enable('trust proxy');
 
+/*
 var toobusy = require('toobusy-js');
 app.use(function(req, res, next) {
     if (toobusy()) {
@@ -80,6 +81,7 @@ app.use(function(req, res, next) {
         next();
     }
 });
+*/
 
 var port = config.port;
 
@@ -125,9 +127,8 @@ server.on('listening', function(){
 
 								console.log('Initiating geo from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/getGeoIP');
 
-								request('http://localhost:' + port + config.publicPath + '/api/getGeoIP', function(error, response, body){
+								request('http://localhost:' + port + config.publicPath + '/api/getGeoIP', function(error, response){
 								    console.log("Response status from geo job:", response && response.statusCode);
-								    console.log(body)
 									if(error){
 										console.error("Could not request own API in cronjob");
 									}
