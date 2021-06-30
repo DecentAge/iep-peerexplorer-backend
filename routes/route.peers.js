@@ -148,12 +148,21 @@ module.exports = function(router) {
     router.route('/api/getGeoIP')
         .get(function (req, res) {
 
-            if(!isLocal(req))
-                return res.send({code:400, success:false, message:'This endpoint is not remotely accessible.'});
+            console.log("Entering /api/getGeoIP");
 
-            var force = req.query.force;
+            if(!isLocal(req)) {
+                console.log("/api/getGeoIP endpoint was not accessed locally, deny access");
+                return res.send({code: 400, success: false, message: 'This endpoint is not remotely accessible.'});
+            }
+
+            console.log("/api/getGeoIP endpoint was accessed locally, proceed");
+
+            var force = req.query.force || false;
+
+            console.log("/api/getGeoIP calling function now, force=", force);
 
             peers.getGeoIP(force, function(){
+                console.log("peers.getGeoIP callback called");
                 res.status(200);
                 res.send({code:200, success:true, message:'Done fetching GeoIP data.'})
             });
