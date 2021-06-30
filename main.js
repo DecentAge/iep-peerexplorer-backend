@@ -125,8 +125,9 @@ server.on('listening', function(){
 
 								console.log('Initiating geo from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/getGeoIP');
 
-								request('http://localhost:' + port + config.publicPath + '/api/getGeoIP', function(error, response){
-								    console.log("Response from geo job:", response)
+								request('http://localhost:' + port + config.publicPath + '/api/getGeoIP', function(error, response, body){
+								    console.log("Response status from geo job:", response && response.statusCode);
+								    console.log(body)
 									if(error){
 										console.error("Could not request own API in cronjob");
 									}
