@@ -24,7 +24,7 @@ const config = require('../core/config.js');
 const seed = config.seed;
 
 const sta = ':'+config.nodeApiPort+'/api?requestType=getPeerState';
-const suf = ':'+config.nodeApiPort+'/api?requestType=getPeers';
+const suf = ':'+config.nodeApiPort+'/api?requestType=getPeers&state=CONNECTED';
 
 const pre = 'http://';
 
@@ -283,13 +283,15 @@ exports.getstate = function(ip,cb){
 	                    freeMemory:data.freeMemory
 	                });
 	                
-	                Perf.findOneAndUpdate({ip:ip.toString()}, perf, {upsert:true, new: false}, function(err,res){
-	                    if(err){
-	                       cb(err,null);
-	                   }else{
-	                        cb(null,res);
-	                    }
-	                });
+	                //Perf.findOneAndUpdate({ip:ip.toString()}, perf, {upsert:true, new: false}, function(err,res){
+	                //    if(err){
+	                //       cb(err,null);
+	                //   }else{
+	                //        cb(null,res);
+	                //    }
+	                //});
+	                
+	                perf.save();
 	
 	                State.findOne({_id:ip}, function(err,doc){
 	
