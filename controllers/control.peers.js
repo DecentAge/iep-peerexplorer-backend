@@ -282,8 +282,14 @@ exports.getstate = function(ip,cb){
 	                    SystemLoadAverage:data.SystemLoadAverage,
 	                    freeMemory:data.freeMemory
 	                });
-	
-	                perf.save();
+	                
+	                Perf.findOneAndUpdate({ip:ip.toString()}, perf, {upsert:true, new: false}, function(err,res){
+	                    if(err){
+	                       cb(err,null);
+	                   }else{
+	                        cb(null,res);
+	                    }
+	                });
 	
 	                State.findOne({_id:ip}, function(err,doc){
 	
@@ -315,7 +321,7 @@ exports.getstate = function(ip,cb){
 	                });
 	
 	            }else{
-	                //console.log('Inactive');
+	                console.log('Deactivating IP', ip);
 	                deactivate(ip, function(err, res){
 	                    cb();
 	                })
@@ -330,7 +336,7 @@ exports.getstate = function(ip,cb){
 };
 
 exports.crawl = function(now, checked, cb){
-
+	// TODO use filter to retrieve only entries with id != null
     Peer.find({}, function(err, docs){
 
         var filtered = [];
