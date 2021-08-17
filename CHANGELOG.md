@@ -1,4 +1,4 @@
-** Release 0.3.0 **
+# Release 0.3.0
 - dockerized project
 - fix db connection
 - added gitlab ci/cd config
@@ -12,5 +12,3 @@
 - catch parse error when parsing node response for peerstate
 - use fetch for bootnodes
 - added npm dependency envsub
-
-Versions & Release Management (3.0.0; must, es darf nicht die gleiche versionnummer sein)
