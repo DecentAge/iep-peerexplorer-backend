@@ -40,10 +40,51 @@ exports.getpaged = function(params, cb){
     if(params.order=='desc')
         sort[params.filter]=-1;
 
+    Peer.aggregate([
+        {
+            $lookup: {
+                from: State.collection.name,
+                localField: '_id',
+                foreignField: '_id',
+                as: 'peerState'}
+            },
+        {
+            $unwind: "$peerState"  //remove array
+        },
+        {
+            $sort: {'peerState.rank': -1}
+        }
+    ])
+        .skip(params.page*params.results)
+        .limit(params.results)
+        .exec(async function(err, result){
+            if(err){
+                //console.log(docs.length);
+                cb(err,null);
+            }else{
+                console.log(result)
+
+                const list = [];
+
+                for (peer of result) {
+                    const peerState = await State.findOne({_id: peer._id});
+                    const geoip = await GeoIP.findOne({_id: peer._id});
+
+                    list.push({
+                        ...peer,
+                        peerState,
+                        geoip
+                    });
+                }
+
+                cb(null,list);
+            }
+        })
+
+/*
     Peer.find({})
         .skip(params.page*params.results)
         .limit(params.results)
-        .sort({rank: -1})
         .exec(async function(err, docs){
             if(err){
                 //console.log(docs.length);
@@ -62,9 +103,20 @@ exports.getpaged = function(params, cb){
                     });
                 }
 
+                list.sort((a, b) => {
+                    if (a.peerState && b.peerState) {
+                        return a.peerState.rank > b.peerState.rank ? -1 : 1;
+                    } else if (a.peerState && !b.peerState) {
+                        return -1;
+                    } else {
+                        return 1;
+                    }
+                });
+
                 cb(null,list);
             }
         })
+ */
 };
 
 exports.findByIP = function(ip, params, cb){
