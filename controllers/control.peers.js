@@ -15,6 +15,7 @@
  ******************************************************************************/
 
 const request = require('request');
+const axios = require('axios');
 const moment = require('moment');
 const async = require('async');
 const _ = require('underscore');
@@ -35,7 +36,11 @@ var Peer = require('../models/model.peer.js');
 var State = require('../models/model.state.js');
 var Perf = require('../models/model.perf.js');
 var Stats = require('../models/model.stats.js');
-var Blacklist = require('../models/model.blacklist');
+var GeoIP = require('../models/model.geoip.js');
+
+const axiosInstance = axios.create({
+    timeout: 5000
+});
 
 function getGeoipUrl(ip){
     var url = geoipServiceEndpoint;
@@ -109,36 +114,279 @@ function updateHistory(history, val){
     return history;
 }
 
-exports.fetch = function(ip,cb){
+exports.getPeer = async function(ip, port, peer){
 
-    var url = pre+ip+suf;
+    const p = port ? port : config.nodeApiPort;
+    const url = 'http://' + ip + ':' + p + '/api?requestType=getPeer&peer=' + peer;
 
-    console.log('Fetching:  ' + url );
+    console.log('getPeer:  ' + url );
 
-    request({url:url, timeout:5000}, function (error, response, body) {
-        if(error){
-        	console.log("Could not fetch " + url);
-            cb(error,null);
-        }else{
-            var json = null;
-            try {
-                json = JSON.parse(body);
-            } catch(err) {
-                console.log("Could not parse json from " + url);
-            }
+    var json = null;
+    try {
+        const {data} = await axiosInstance.get(url);
+        json = data;
+    } catch(err) {
+        console.error("Could not get peer from " + url, err);
+    }
 
-            if (json && json.peers) {
-                cb(null, json.peers);
-            } else {
-                cb("Could not parse json from " + url, null);
-            }
-        }
-    });
-
+    return json;
 };
 
-exports.seed = function(cb){
-    module.exports.fetch(seed,function(err,res){
+exports.getPeers = async function(ip, port){
+    const p = port ? port : config.nodeApiPort;
+    const url = 'http://' + ip + ':' + p + '/api?requestType=getPeers&state=CONNECTED';
+
+    console.log('getPeers:  ' + url );
+
+    let json = null;
+    try {
+        const {data} = await axiosInstance.get(url);
+        json = data;
+    } catch(err) {
+        console.error("Could not get peers from " + url, err);
+    }
+
+    if (json && json.peers) {
+        return json.peers;
+    }
+
+    return null;
+};
+
+exports.getPeerState = async function(ip, port){
+    const p = port ? port : config.nodeApiPort;
+    const url = 'http://' + ip + ':' + p + '/api?requestType=getPeerState';
+
+    console.log('getPeerState:  ' + url );
+
+    let json = null;
+    try {
+        const {data} = await axiosInstance.get(url);
+        json = data;
+    } catch(err) {
+        console.error("Could not get peerState from " + url, err);
+    }
+
+    return json;
+};
+
+exports.getGeoIP = async function(ip){
+    const geoip = await GeoIP.findOne({_id: ip});
+
+    if (geoip === null) {
+        let geodata = null;
+        try {
+            const {data} = await axiosInstance.get(getGeoipUrl(ip));
+            geodata = data;
+        } catch (err) {
+            console.error("Could not get geoIP data for " + ip, err);
+        }
+
+        if (geodata) {
+            if (geodata.status !== 'success') {
+                console.log('Could not get geoip data for ' + ip + ', Service returned failed status, response: ', geodata.message);
+            } else {
+                return geodata;
+            }
+        }
+    }
+
+    return null;
+};
+
+exports.crawl = async function() {
+    console.log("Entering crawl");
+
+    let i = 0;
+    const processedPeers = [];
+
+    // iterate through all peers in db
+    for await (const peer of Peer.find({})) {
+        await module.exports.crawlPeer(peer._id, peer.apiPort, processedPeers);
+        i++;
+    }
+
+    // if no peers in db, use default host and port (master node / seed)
+    if (i === 0) {
+        await module.exports.crawlPeer(config.nodeApiHost, config.nodeApiPort, processedPeers);
+    }
+
+    console.log('---- Crawled ' + processedPeers.length + ' IPs ----');
+    console.log("Exiting crawl");
+    return Promise.resolve();
+};
+
+exports.crawlPeer = async function(ip, port, processedPeers) {
+    console.log("Entering crawlPeer, " + ip + ":" + port);
+
+    if (processedPeers.includes(ip)) {
+        console.log("Peer with IP " + ip + " already processed, skipping");
+    } else {
+        console.log("Crawling IP " + ip);
+
+        const peers = await module.exports.getPeers(ip);
+
+        // mark this ip as already processed to avoid duplicate processing
+        processedPeers.push(ip);
+
+        if (peers) {
+            for await (const peer of peers) {
+                const peerData = await module.exports.getPeer(ip, port, peer);
+
+                if (peerData && !peerData.errorCode) {
+                    const {
+                        address,
+                        announcedAddress,
+                        apiPort,
+                        application,
+                        blacklisted,
+                        downloadedVolume,
+                        inbound,
+                        inboundWebSocket,
+                        lastConnectionAttempt,
+                        lastUpdated,
+                        outboundWebSocket,
+                        platform,
+                        port,
+                        requestProcessingTime,
+                        services,
+                        shareAddress,
+                        state,
+                        uploadedVolume,
+                        version,
+                        weight,
+                        hallmark
+                    } = peerData;
+
+                    // only add non-blacklisted peers, delete if an existing peer gets blacklisted
+                    if (!blacklisted) {
+                        // delete fields that should not be saved
+                        delete peerData.address;
+                        delete peerData.blacklisted;
+
+                        await Peer.updateOne({_id: address}, peerData, {upsert: true, new: true});
+
+                        console.log("Peer successfully saved, " + ip);
+                    } else {
+                        await Peer.deleteOne({_id: address});
+
+                        console.log("Peer now blacklisted, deleted " + ip);
+                    }
+
+                    // recursively crawl this peer
+                    return await module.exports.crawlPeer(address, apiPort, processedPeers);
+                }
+            }
+        }
+    }
+};
+
+
+
+
+exports.processPeers = async function() {
+    let i = 0;
+
+    for await (const peer of Peer.find({})) {
+        const ip = peer._id;
+        const port = peer.apiPort;
+
+        const peerStateData = await module.exports.getPeerState(ip, port);
+        const geoIPData = await module.exports.getGeoIP(ip);
+
+        if (peerStateData) {
+            await module.exports.createUpdatePeerState(ip, peerStateData);
+            await module.exports.createPerfLog(ip, peerStateData);
+        }
+
+        if (geoIPData) {
+            await module.exports.createGeoIP(ip, geoIPData);
+        }
+
+        i++;
+    }
+
+    console.log('---- Processed ' + i + ' peers ----');
+};
+
+exports.createUpdatePeerState = async function(ip, peerStateData) {
+    peerStateData.rank = calculateRank(peerStateData);
+    peerStateData.lastUpdated = moment().toDate();
+
+    try {
+        if (peerStateData.availableProcessors) {
+
+            peerStateData.active = true;
+
+            const doc = await State.findOne({_id: ip});
+
+            if (doc) {
+                peerStateData.history_freeMemory = updateHistory(doc.history_freeMemory, peerStateData.freeMemory);
+
+                peerStateData.history_SystemLoadAverage = updateHistory(doc.history_SystemLoadAverage, peerStateData.SystemLoadAverage);
+
+                peerStateData.history_numberOfActivePeers = updateHistory(doc.history_numberOfActivePeers, peerStateData.numberOfActivePeers);
+
+                peerStateData.history_requestProcessingTime = updateHistory(doc.history_requestProcessingTime, peerStateData.requestProcessingTime);
+            }
+
+            await State.updateOne({_id: ip}, peerStateData, {upsert: true, new: true});
+        }
+    } catch (error) {
+        console.error("Could not create or update peerState for " + ip, error);
+    }
+};
+
+exports.createPerfLog = async function(ip, peerStateData) {
+    try {
+        if (peerStateData.availableProcessors) {
+            const perf = new Perf({
+                ip: ip,
+                timestamp: moment().toDate(),
+                numberOfActivePeers: peerStateData.numberOfActivePeers,
+                SystemLoadAverage: peerStateData.SystemLoadAverage,
+                freeMemory: peerStateData.freeMemory
+            });
+
+            perf.save();
+        }
+    } catch (error) {
+        console.error("Could not create perf for " + ip, error);
+    }
+};
+
+exports.createGeoIP = async function(ip, geodata) {
+    try {
+        const geoip = new GeoIP({
+            country_code: geodata.countryCode,
+            country_name: geodata.country,
+            region_code: geodata.region,
+            region_name: geodata.regionName,
+            city: geodata.city,
+            zip_code: geodata.zip,
+            time_zone: geodata.timezone,
+            latitude: geodata.lat,
+            longitude: geodata.lon,
+        });
+
+        geoip.save();
+    } catch (error) {
+        console.error("Could not create geoIP for " + ip, error);
+    }
+};
+
+
+/*
+
+
+
+
+
+
+
+
+exports.fetchAndSavePeers = function(cb){
+    module.exports.getPeers(seed,function(err, res){
         if(err){
         	console.log("Could not fetch bootnodes");
             cb(err,null);
@@ -192,7 +440,7 @@ exports.seed = function(cb){
 };
 
 exports.populate = function(ip, cb){
-    module.exports.fetch(ip,function(err,res){
+    module.exports.getPeers(ip,function(err, res){
         if(err){
             cb(err,null);
         }else{
@@ -240,7 +488,7 @@ exports.populate = function(ip, cb){
     })
 };
 
-exports.getstate = function(ip,cb){
+exports.getPeerState = function(ip, cb){
 
     var url = pre+ip+sta;
     
@@ -269,7 +517,7 @@ exports.getstate = function(ip,cb){
 	            data.lastUpdated = moment().toDate();
 	
 	            if(data.availableProcessors){
-	
+
 	                pData.active = true;
 	                data.active = true;
 	
@@ -355,7 +603,9 @@ exports.crawl = function(now, checked, cb){
             }else{
                 async.eachLimit(filtered, config.concurrent, function(obj, cb){
 
-                    module.exports.getstate(obj._id, function(err, res){
+                    module.exports.getPeer(obj._id,
+
+                    module.exports.getPeerState(obj._id, function(err, res){
 
                         checked[obj._id] = 1;
 
@@ -383,6 +633,7 @@ exports.crawl = function(now, checked, cb){
         }
     })
 };
+ */
 
 exports.clean = function(cb){
     State.find({}, function(err, docs) {
@@ -434,7 +685,7 @@ exports.clean = function(cb){
     });
 };
 
-exports.buildStats = function(cb){
+exports.buildStats = async function(){
 
     Peer.find({}, function(err,peers) {
         State.aggregate([
@@ -494,7 +745,7 @@ exports.buildStats = function(cb){
         ], function (err, result) {
             if (err) {
                 console.log(err);
-                cb(err,null);
+                //cb(err,null);
             } else {
 
                 if(result.length) {
@@ -508,15 +759,15 @@ exports.buildStats = function(cb){
                     Stats.findOneAndUpdate({_id: 'nodeStats'}, data, {upsert: true}, function (err, doc) {
                         if (err) {
                             console.log(err);
-                            cb(err, null)
+                            //cb(err, null)
                         } else {
-                            cb(null, doc);
+                            //cb(null, doc);
                         }
                     });
 
                 }else{
 
-                    cb('No peers in db. No stats compiled.');
+                    //cb('No peers in db. No stats compiled.');
 
                 }
 
@@ -525,7 +776,7 @@ exports.buildStats = function(cb){
     });
 
 };
-
+/*
 exports.getGeoIP = function(force, cb){
     console.log("Entering getGeoIP geoip");
 
@@ -596,3 +847,4 @@ exports.getGeoIP = function(force, cb){
     });
 
 };
+*/

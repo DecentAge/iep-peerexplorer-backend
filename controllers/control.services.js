@@ -15,6 +15,8 @@
  ******************************************************************************/
 
 var State = require('../models/model.state.js');
+var Peer = require('../models/model.peer.js');
+var GeoIP = require('../models/model.geoip.js');
 var Perf = require('../models/model.perf.js');
 var Stats = require('../models/model.stats.js');
 
@@ -38,6 +40,33 @@ exports.getpaged = function(params, cb){
     if(params.order=='desc')
         sort[params.filter]=-1;
 
+    Peer.find({})
+        .skip(params.page*params.results)
+        .limit(params.results)
+        .sort({rank: -1})
+        .exec(async function(err, docs){
+            if(err){
+                //console.log(docs.length);
+                cb(err,null);
+            }else{
+                const list = [];
+
+                for (doc of docs) {
+                    const state = await State.findOne({_id: doc._id});
+                    const geoip = await GeoIP.findOne({_id: doc._id});
+
+                    list.push({
+                        ...doc.toJSON(),
+                        state,
+                        geoip
+                    });
+                }
+
+                cb(null,list);
+            }
+        })
+
+    /*
     State.find({})
         .skip(params.page*params.results)
         .limit(params.results)
@@ -51,23 +80,29 @@ exports.getpaged = function(params, cb){
                 cb(null,docs);
             }
         })
-
+    */
 };
 
 exports.findByIP = function(ip, params, cb){
-
-    State.findOne({_id:ip}, function(err, doc){
+    Peer.findOne({_id:ip}, async function(err, doc){
         if(err){
             console.log(err);
             cb(err,null);
         }else{
             if(!doc)
                 cb(null,{});
-            else
-                cb(null,doc);
+            else {
+                const state = await State.findOne({_id: doc._id});
+                const geoip = await GeoIP.findOne({_id: doc._id});
+
+                cb(null, {
+                    ...doc.toJSON(),
+                    state,
+                    geoip
+                });
+            }
         }
     })
-
 };
 
 exports.findByService = function(services, params, cb){
@@ -140,10 +175,10 @@ exports.getGeoDataAgg = function(field, cb){
         && field != "metro_code")
         field = 'country_name';
 
-    State.aggregate([
+    GeoIP.aggregate([
         {
             $project:{
-                aggField:"$geoip."+field
+                aggField:field
             }
         },
         {

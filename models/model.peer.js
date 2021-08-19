@@ -17,11 +17,31 @@
 const mongoose = require('mongoose');
 const moment = require('moment');
 const Schema = mongoose.Schema;
+const config = require('../core/config')
 
 var Peer = new Schema({
     _id:String,
     lastFetched:{type:Date, default:moment().toDate()},
-    active:{type:Boolean, default:true}
+    active:{type:Boolean, default:true},
+    apiPort:{type:Number, default:config.nodeApiPort},
+    announcedAddress:{type:String},
+    application:{type:String},
+    downloadedVolume: {type: Number},
+    inbound: {type: Boolean},
+    inboundWebSocket: {type: Boolean},
+    lastConnectionAttempt: {type: Number},
+    lastUpdated: {type: Number},
+    outboundWebSocket: {type: Boolean},
+    platform: {type: String},
+    port: {type: Number},
+    requestProcessingTime: {type: Number},
+    services: {type: Array},
+    shareAddress: {type: Boolean},
+    state: {type: Number},
+    uploadedVolume: {type: Number},
+    version: {type: String},
+    weight: {type: Number},
+    hallmark: {type: String}
 });
 
 module.exports = mongoose.model('Peer', Peer);

@@ -81,19 +81,6 @@ var State = new Schema({
     history_SystemLoadAverage:[Number],
     history_freeMemory:[Number],
     history_requestProcessingTime:[Number],
-    geoip:{
-        country_code:{type:String,default:'N/A'},
-        country_name:{type:String,default:'N/A'},
-        region_code:{type:String,default:'N/A'},
-        region_name:{type:String,default:'N/A'},
-        city:{type:String,default:'N/A'},
-        zip_code:{type:String,default:'N/A'},
-        time_zone:{type:String,default:'N/A'},
-        latitude:{type:Number,default:null},
-        longitude:{type:Number,default:null},
-        metro_code:{type:Number,default:null}
-    },
-    geoipfetched:{type:Boolean,default:false}
 
     /*history_numberOfActivePeers:[{
         timestamp:Date,

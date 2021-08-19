@@ -16,9 +16,11 @@
 
 const mongoose = require('mongoose');
 const request = require('request');
+const axios = require('axios');
 var config = require('./core/config.js');
 var CronJob = require('cron').CronJob;
 var ping = require('net-ping');
+
 
 mongoose.Promise = global.Promise;
 
@@ -102,6 +104,13 @@ server = app.listen(port);
 
 cronjobs = {};
 
+
+const peers = require('./controllers/control.peers');
+
+exports.axiosInstance = axios.create({
+    timeout: 5000
+});
+
 server.on('listening', function(){
 
     console.log('Listening on port '+port);
@@ -110,34 +119,27 @@ server.on('listening', function(){
 	cronjobs.crawl = new CronJob({
 		cronTime:'00 */7 * * * *',
 		onTick: function() {
-				console.log('Initiating crawl from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/crawl');
+            console.log("=========================\nSTART CRAWL\n=========================");
 
-				request('http://localhost:' + port + config.publicPath + '/api/crawl', function(error){
-					if(error){
-						console.error("Could not request own API in cronjob");
-					}
+		    peers.crawl()
+                .then(() => {
+                    console.log("=========================\nCRAWL FINISHED\n=========================");
 
-					setTimeout(function(){
-							console.log('Initiating stats from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/buildStats');
+                    console.log("=========================\nSTART PROCESS PEERS\n=========================");
+                    return peers.processPeers();
+                })
+                .then(() => {
+                    console.log("=========================\nPROCESS PEERS FINISHED\n=========================");
 
-							request('http://localhost:' + port + config.publicPath + '/api/buildStats', function(error){
-								if(error){
-									console.error("Could not request own API in cronjob");
-								}
-
-								console.log('Initiating geo from cronjob..', 'http://localhost:' + port + config.publicPath + '/api/getGeoIP');
-
-								request('http://localhost:' + port + config.publicPath + '/api/getGeoIP', function(error, response){
-								    console.log("Response status from geo job:", response && response.statusCode);
-									if(error){
-										console.error("Could not request own API in cronjob");
-									}
-
-									console.log('cronjob done...');
-								});
-							});
-					},5000)
-				});
+                    console.log("=========================\nSTART BUILD STATS\n=========================");
+                    return peers.buildStats();
+                })
+                .then(() => {
+                    console.log("=========================\nBUILD STATS FINISHED\n=========================");
+                })
+                .catch((error) => {
+                    console.error("Error occured during cronjob", error);
+                });
 		},
 		start:true,
         runOnInit: true,

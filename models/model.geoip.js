@@ -14,18 +14,21 @@
  *                                                                            *
  ******************************************************************************/
 
-module.exports = {
-    port: 8888,
-    publicPath: process.env.IEP_PEEREXPLORER_BACKEND_PATH || '/peerexplorer-backend',
-    nodeApiHost: process.env.IEP_PEEREXPLORER_BACKEND_NODE_API_HOST || '199.127.137.169',
-    nodeApiPort: process.env.IEP_PEEREXPLORER_BACKEND_NODE_API_PORT || '',
-    concurrent: 15,
-    rankFactor:1.00,
-    mongodb:{
-        user:'peerexplorer',
-        pass:'peerexplorerTest',
-        host:'mongodb://peerexplorer-db:27017/peers'
-    },
-    adminkey:'**YourAdminKeyHere**'
+var mongoose = require('mongoose');
+var Schema = mongoose.Schema;
 
-};
+var GeoIP = new Schema({
+    _id:String,
+    country_code:{type:String,default:'N/A'},
+    country_name:{type:String,default:'N/A'},
+    region_code:{type:String,default:'N/A'},
+    region_name:{type:String,default:'N/A'},
+    city:{type:String,default:'N/A'},
+    zip_code:{type:String,default:'N/A'},
+    time_zone:{type:String,default:'N/A'},
+    latitude:{type:Number,default:null},
+    longitude:{type:Number,default:null},
+    metro_code:{type:Number,default:null}
+});
+
+module.exports = mongoose.model('GeoIP', GeoIP);

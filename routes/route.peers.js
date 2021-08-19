@@ -64,25 +64,40 @@ module.exports = function(router) {
 
         });
 
+    /*
+
     router.route('/api/crawl')
         .get(function (req, res) {
 
             console.log("Entering /api/crawl");
 
-             if(!isLocal(req))
-                 return res.send({code:400, success:false, message:'This endpoint is not remotely accessible.'});
+            if(!isLocal(req))
+                return res.send({code:400, success:false, message:'This endpoint is not remotely accessible.'});
 
-            const now = moment().toDate();
-
-            peers.seed(function(){
-                peers.crawl(now, {}, function(){
-                })
-            });
+            peers.crawl();
 
             res.status(200);
             res.send({code:200, success:true, message:'Iterating through nodes async.'});
 
         });
+
+    router.route('/api/processPeers')
+        .get(function (req, res) {
+
+            console.log("Entering /api/processPeers");
+
+            if(!isLocal(req))
+                return res.send({code:400, success:false, message:'This endpoint is not remotely accessible.'});
+
+            const now = moment().toDate();
+
+            // todo PROCESS PEERS
+
+            res.status(200);
+            res.send({code:200, success:true, message:'Iterating through nodes async.'});
+
+        });
+     */
 
     router.route('/api/crawl/deactivate')
         .get(function (req, res) {
