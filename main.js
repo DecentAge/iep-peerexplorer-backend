@@ -136,9 +136,15 @@ server.on('listening', function(){
                 })
                 .then(() => {
                     console.log("=========================\nBUILD STATS FINISHED\n=========================");
+
+                    console.log("=========================\nSTART CLEAN INACTIVE PEERS\n=========================");
+                    return peers.cleanInactivePeers();
+                })
+                .then(() => {
+                    console.log("=========================\nCLEAN INACTIVE PEERS FINISHED\n=========================");
                 })
                 .catch((error) => {
-                    console.error("Error occured during cronjob", error);
+                    console.error("Error occurred during cronjob", error);
                 });
 		},
 		start:true,

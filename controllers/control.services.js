@@ -52,12 +52,12 @@ exports.getpaged = function(params, cb){
                 const list = [];
 
                 for (doc of docs) {
-                    const state = await State.findOne({_id: doc._id});
+                    const peerState = await State.findOne({_id: doc._id});
                     const geoip = await GeoIP.findOne({_id: doc._id});
 
                     list.push({
                         ...doc.toJSON(),
-                        state,
+                        peerState,
                         geoip
                     });
                 }
@@ -65,22 +65,6 @@ exports.getpaged = function(params, cb){
                 cb(null,list);
             }
         })
-
-    /*
-    State.find({})
-        .skip(params.page*params.results)
-        .limit(params.results)
-        // .sort(sort)
-        .sort({rank: -1})
-        .exec(function(err, docs){
-            if(err){
-                //console.log(docs.length);
-                cb(err,null);
-            }else{
-                cb(null,docs);
-            }
-        })
-    */
 };
 
 exports.findByIP = function(ip, params, cb){
@@ -92,12 +76,12 @@ exports.findByIP = function(ip, params, cb){
             if(!doc)
                 cb(null,{});
             else {
-                const state = await State.findOne({_id: doc._id});
+                const peerState = await State.findOne({_id: doc._id});
                 const geoip = await GeoIP.findOne({_id: doc._id});
 
                 cb(null, {
                     ...doc.toJSON(),
-                    state,
+                    peerState,
                     geoip
                 });
             }
@@ -144,8 +128,7 @@ exports.getPerfLog = function(data, cb){
 
 exports.getStats = function(cb){
 
-    Stats.findOne({_id:'nodeStats'}, function(err, doc){
-
+    Stats.findOne({_id:'nodeStats'}, async function(err, doc){
         if(err){
             cb(err,null)
         }else{
@@ -157,48 +140,6 @@ exports.getStats = function(cb){
             }
         }
 
-    });
-
-};
-
-exports.getGeoDataAgg = function(field, cb){
-
-    if(!field
-        && field != "country_code"
-        && field != "country_name"
-        && field != "region_code"
-        && field != "city"
-        && field != "zip_code"
-        && field != "time_zone"
-        && field != "latitude"
-        && field != "longitude"
-        && field != "metro_code")
-        field = 'country_name';
-
-    GeoIP.aggregate([
-        {
-            $project:{
-                aggField:field
-            }
-        },
-        {
-            $group: {
-                _id:"$aggField",
-                count: {$sum:1}
-            }
-        }
-    ], function(err, result){
-
-        result = result.map(function(x){
-            x[field] = x._id;
-            delete x._id;
-            return x;
-        });
-
-        if(err)
-            cb(err,null);
-        else
-            cb(null,result);
     });
 
 };

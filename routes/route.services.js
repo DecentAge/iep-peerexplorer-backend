@@ -14,10 +14,7 @@
  *                                                                            *
  ******************************************************************************/
 
-const peers = require('../controllers/control.peers');
 const service = require('../controllers/control.services.js');
-const blacklist = require('../controllers/control.blacklist')
-const config = require('../core/config');
 var pjson = require('../package.json');
 
 module.exports = function(router) {
@@ -131,87 +128,4 @@ module.exports = function(router) {
             })
 
         });
-
-    router.route('/api/geoData')
-        .get(function(req, res){
-
-            var field = req.query.field;
-
-            service.getGeoDataAgg(field, function(err,data){
-                res.send(data)
-            })
-        });
-
-    router.route('/api/blacklist')
-        .post(function(req, res){
-
-            if(!req.body.key || req.body.key.trim()!=config.adminkey){
-                res.status(403)
-                return res.send({code: 403, success: false, message: 'Invalid key. You do not have access to this endpoint.'});
-            }
-
-            var ip = req.body.ip;
-            var type = req.body.type;
-
-            if(!ip){
-                res.status(400);
-                res.send({code: 400, success: false, message: 'Missing data. Please provide IP address to be blacklisted.'});
-            }
-
-            if(!type)
-                type = 'user';
-
-            if(type!= 'node' && type!='user') {
-                res.status(400);
-                res.send({code: 400, success: false, message: 'Invalid type. Type can only be either "user" or "node".'});
-            }
-
-            blacklist.blacklist(ip,type, function(err, msg){
-
-                peers.clean(function(){});
-                peers.buildStats(function(){});
-
-                if(err){
-                    console.log(err);
-                    res.status(500);
-                    res.send({code: 500, success: false, message: err})
-                }else if(!err){
-                    res.status(200);
-                    res.send({code: 200, success: true, message: msg})
-                }
-
-            });
-
-        });
-
-    router.route('/api/whitelist')
-        .post(function(req, res){
-
-            if(!req.body.key || req.body.key.trim()!=config.adminkey){
-                res.status(403)
-                return res.send({code: 403, success: false, message: 'Invalid key. You do not have access to this endpoint.'});
-            }
-
-            var ip = req.body.ip;
-
-            if(!ip){
-                res.status(400);
-                res.send({code: 400, success: false, message: 'Missing data. Please provide IP address to be whitelisted.'});
-            }
-
-            blacklist.whitelist(ip, function(err, msg){
-
-                if(err){
-                    console.log(err);
-                    res.status(500);
-                    res.send({code: 500, success: false, message: err})
-                }else if(!err){
-                    res.status(200);
-                    res.send({code: 200, success: true, message: msg})
-                }
-
-            });
-
-        })
-
 };

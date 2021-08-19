@@ -15,7 +15,6 @@
  ******************************************************************************/
 
 const peers = require('../controllers/control.peers');
-const blacklist = require('../controllers/control.blacklist');
 const moment = require('moment');
 const config = require('../core/config');
 
@@ -50,6 +49,8 @@ module.exports = function(router) {
     router.route('/api/*')
         .all(function(req,res,next){
 
+            return next();
+/*
             var ip = cliAddress(req);
 
             blacklist.checkUser(ip, function(blacklisted){
@@ -61,43 +62,9 @@ module.exports = function(router) {
                 }
 
             })
+ */
 
         });
-
-    /*
-
-    router.route('/api/crawl')
-        .get(function (req, res) {
-
-            console.log("Entering /api/crawl");
-
-            if(!isLocal(req))
-                return res.send({code:400, success:false, message:'This endpoint is not remotely accessible.'});
-
-            peers.crawl();
-
-            res.status(200);
-            res.send({code:200, success:true, message:'Iterating through nodes async.'});
-
-        });
-
-    router.route('/api/processPeers')
-        .get(function (req, res) {
-
-            console.log("Entering /api/processPeers");
-
-            if(!isLocal(req))
-                return res.send({code:400, success:false, message:'This endpoint is not remotely accessible.'});
-
-            const now = moment().toDate();
-
-            // todo PROCESS PEERS
-
-            res.status(200);
-            res.send({code:200, success:true, message:'Iterating through nodes async.'});
-
-        });
-     */
 
     router.route('/api/crawl/deactivate')
         .get(function (req, res) {
@@ -140,51 +107,6 @@ module.exports = function(router) {
 
             res.status(200);
             res.send({code:200, success:true, message:'Checking nodes and cleaning.'})
-
-        });
-
-    router.route('/api/buildStats')
-        .get(function (req, res) {
-
-            console.log("Entering /api/buildStats");
-
-            if(!isLocal(req))
-                return res.send({code:400, success:false, message:'This endpoint is not remotely accessible.'});
-
-            peers.buildStats(function(err, doc){
-                if(err) {
-                    console.log(err);
-                    res.status(500);
-                    res.send({code:500, success:false, message:'An error has occurred.'});
-                }else {
-                    res.status(200);
-                    res.send({code:200, success:true, message:'Done updating node stats.'})
-                }
-            });
-
-        });
-
-    router.route('/api/getGeoIP')
-        .get(function (req, res) {
-
-            console.log("Entering /api/getGeoIP");
-
-            if(!isLocal(req)) {
-                console.log("/api/getGeoIP endpoint was not accessed locally, deny access");
-                return res.send({code: 400, success: false, message: 'This endpoint is not remotely accessible.'});
-            }
-
-            console.log("/api/getGeoIP endpoint was accessed locally, proceed");
-
-            var force = req.query.force || false;
-
-            console.log("/api/getGeoIP calling function now, force=", force);
-
-            peers.getGeoIP(force, function(){
-                console.log("peers.getGeoIP callback called");
-                res.status(200);
-                res.send({code:200, success:true, message:'Done fetching GeoIP data.'})
-            });
 
         });
 };

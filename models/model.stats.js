@@ -43,6 +43,7 @@ var Stats = new Schema({
     storagePSQL:{type:Number, default:0},
     storageRethink:{type:Number, default:0},
     nodesOnline:{type:Number, default:0},
+    version:{type:String}
 });
 
 module.exports = mongoose.model('nodeStats', Stats);

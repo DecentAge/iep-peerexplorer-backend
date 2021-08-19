@@ -22,13 +22,6 @@ const _ = require('underscore');
 
 const config = require('../core/config.js');
 
-const seed = config.seed;
-
-const sta = ':'+config.nodeApiPort+'/api?requestType=getPeerState';
-const suf = ':'+config.nodeApiPort+'/api?requestType=getPeers&state=CONNECTED';
-
-const pre = 'http://';
-
 const geoipServiceEndpoint = "http://ip-api.com/json/${ip}";
 //const geoipServiceApiKey = "36146f7aee7b529306116797068bff18";
 
@@ -258,23 +251,37 @@ exports.crawlPeer = async function(ip, port, processedPeers) {
                         hallmark
                     } = peerData;
 
-                    // only add non-blacklisted peers, delete if an existing peer gets blacklisted
-                    if (!blacklisted) {
-                        // delete fields that should not be saved
+                    // if peer is connected
+                    if (state === 1) {
+                        // only add non-blacklisted peers, delete if an existing peer gets blacklisted
+                        if (!blacklisted) {
+                            // delete fields that should not be saved and update last connect time
+                            delete peerData.address;
+                            delete peerData.blacklisted;
+                            peerData.active = true;
+                            peerData.lastConnected = new Date();
+
+                            await Peer.updateOne({_id: address}, peerData, {upsert: true, new: true});
+
+                            console.log("Peer successfully saved, " + ip);
+                        } else {
+                            await Peer.deleteOne({_id: address});
+
+                            console.log("Peer now blacklisted, deleted " + ip);
+                        }
+                    } else {
+                        // delete fields that should not be saved and set to inactive because not connected state
                         delete peerData.address;
                         delete peerData.blacklisted;
+                        peerData.active = false;
 
                         await Peer.updateOne({_id: address}, peerData, {upsert: true, new: true});
 
                         console.log("Peer successfully saved, " + ip);
-                    } else {
-                        await Peer.deleteOne({_id: address});
-
-                        console.log("Peer now blacklisted, deleted " + ip);
                     }
 
                     // recursively crawl this peer
-                    return await module.exports.crawlPeer(address, apiPort, processedPeers);
+                    await module.exports.crawlPeer(address, apiPort, processedPeers);
                 }
             }
         }
@@ -375,320 +382,11 @@ exports.createGeoIP = async function(ip, geodata) {
     }
 };
 
-
-/*
-
-
-
-
-
-
-
-
-exports.fetchAndSavePeers = function(cb){
-    module.exports.getPeers(seed,function(err, res){
-        if(err){
-        	console.log("Could not fetch bootnodes");
-            cb(err,null);
-        } else {
-    	
-        	console.log("Get initial list of nodes");
-
-            //An array of all blacklisted nodes is pulled here to make sure they arent checked
-            //Blacklist.find({type:node, blacklisted:true }, function(err, nodes){
-
-			Blacklist.find({ }, function(err, nodes){
-                var list = {};
-
-                nodes.map(function(node){
-                    list[node._id] = 1;
-                });
-
-                async.each(res, function(ip,cb){
-                    if(!list[ip]){
-                        
-                        Peer.exists({_id:ip}, function (error, exists) {
-                            if (error) {
-                                console.log("Error checking existance ip = " + ip, error)
-                            }
-                            
-                            if (!exists) {
-                                console.log("Saving peer " + ip + " to db");
-                                var peer = new Peer({_id:ip});
-                                peer.save(function(err){
-                                    if(err){
-                                        console.log("Could not save peer " + ip + " to db", err);
-                                    }
-                                    cb();
-                                });
-                            } else {
-                                console.log("Peer already exists " + ip + ", skipping");
-                                cb();
-                            }
-                        });
-                    }else{
-                        console.log(ip+' is blacklisted.');
-                        cb();
-                    }
-                }, function(){
-                    cb(null,res);
-                });
-
-            });
-        }
-    })
-};
-
-exports.populate = function(ip, cb){
-    module.exports.getPeers(ip,function(err, res){
-        if(err){
-            cb(err,null);
-        }else{
-
-            Blacklist.find({type:'node', blacklisted:true}, function(err, nodes){
-
-                var list = {};
-
-                nodes.map(function(node){
-                    list[node._id] = 1;
-                });
-
-                async.each(res, function(ip,cb){
-                	if(!list[ip]){
-                        Peer.exists({_id:ip}, function (error, exists) {
-                            if (error) {
-                                console.log("Error checking existance ip = " + ip, error)
-                            }
-
-                            if (!exists) {
-                                console.log("Saving peer " + ip + " to db");
-                                var peer = new Peer({_id:ip});
-                                peer.save(function(err){
-                                    if(err){
-                                        console.log("Could not save peer " + ip + " to db", err);
-                                    }
-                                    cb();
-                                });
-                            } else {
-                                console.log("Peer already exists " + ip + ", skipping");
-                                cb();
-                            }
-                        });
-                    }else{
-                        console.log(ip+' is blacklisted.');
-                        cb();
-                    }
-                }, function(){
-                    cb(null,res);
-                });
-
-            });
-
-        }
-    })
-};
-
-exports.getPeerState = function(ip, cb){
-
-    var url = pre+ip+sta;
-    
-    console.log("Requesting " + url);
-
-    request({uri:url,timeout:5000}, function (error, response, body) {
-        if(error){
-        	console.log("Could not get peerstate for " + url, error);
-    		deactivate(ip, function(err, res){
-                if(err) {
-                    console.log('error:' + err);
-                    cb(err,null);
-                }else {
-                    cb(error, null);
-                }
-            });
-        }else{
-        	try {
-	            var data = JSON.parse(body);
-	
-	            var pData = {
-	                lastFetched:moment().toDate()
-	            };
-	
-	            data.rank = calculateRank(data);
-	            data.lastUpdated = moment().toDate();
-	
-	            if(data.availableProcessors){
-
-	                pData.active = true;
-	                data.active = true;
-	
-	                // console.log('Active');
-	
-	                var perf = new Perf({
-	                    ip:ip,
-	                    timestamp:moment().toDate(),
-	                    numberOfActivePeers:data.numberOfActivePeers,
-	                    SystemLoadAverage:data.SystemLoadAverage,
-	                    freeMemory:data.freeMemory
-	                });
-	                
-	                //Perf.findOneAndUpdate({ip:ip.toString()}, perf, {upsert:true, new: false}, function(err,res){
-	                //    if(err){
-	                //       cb(err,null);
-	                //   }else{
-	                //        cb(null,res);
-	                //    }
-	                //});
-	                
-	                perf.save();
-	
-	                State.findOne({_id:ip}, function(err,doc){
-	
-	                    if(doc){
-	                        data.history_freeMemory = updateHistory(doc.history_freeMemory, data.freeMemory);
-	
-	                        data.history_SystemLoadAverage = updateHistory(doc.history_SystemLoadAverage, data.SystemLoadAverage);
-	
-	                        data.history_numberOfActivePeers = updateHistory(doc.history_numberOfActivePeers, data.numberOfActivePeers);
-	
-	                        data.history_requestProcessingTime = updateHistory(doc.history_requestProcessingTime, data.requestProcessingTime);
-	                    }
-	
-	                    State.findOneAndUpdate({_id:ip}, data, {upsert:true, new: true}, function(err,res){
-	                        if(err)
-	                            console.log(err);
-	                    });
-	
-	                });
-	
-	                Peer.findOneAndUpdate({_id:ip}, pData, {upsert:true, new: true}, function(err,res){
-	                    if(err){
-	                        console.log(err);
-	                        cb(err,null);
-	                    }else{
-	                        // console.log(res);
-	                        cb(null,res);
-	                    }
-	                });
-	
-	            }else{
-	                console.log('Deactivating IP', ip);
-	                deactivate(ip, function(err, res){
-	                    cb();
-	                })
-	            }
-        	} catch (error) {
-        		console.log("Could not update peerstate", error);
-        		console.log("Node response:", body);
-        	}
-        }
-    });
-
-};
-
-exports.crawl = function(now, checked, cb){
-	// TODO use filter to retrieve only entries with id != null
-    Peer.find({}, function(err, docs){
-
-        var filtered = [];
-
-        docs.map(function(x){
-            if(!checked[x._id])
-                filtered.push(x);
-        });
-
-        if(filtered.length>0){
-
-            if(err){
-                cb(err,null);
-            }else{
-                async.eachLimit(filtered, config.concurrent, function(obj, cb){
-
-                    module.exports.getPeer(obj._id,
-
-                    module.exports.getPeerState(obj._id, function(err, res){
-
-                        checked[obj._id] = 1;
-
-                        if(err){
-                            // console.log(err);
-                            cb();
-                        }else{
-                            module.exports.populate(obj._id, function(err, res){
-                                cb();
-                            });
-                        }
-                    });
-
-                }, function(){
-
-                    module.exports.crawl(now, checked, function(){
-                        cb();
-                    });
-
-                });
-            }
-        }else{
-            //console.log('Done');
-            cb()
-        }
-    })
-};
- */
-
-exports.clean = function(cb){
-    State.find({}, function(err, docs) {
-        if (docs.length > 0) {
-            if (err) {
-                cb(err, null);
-            } else {
-                async.eachLimit(docs, config.concurrent, function (obj, cb) {
-
-                    var url = pre+obj._id+sta;
-
-                    request({uri:url,timeout:5000}, function (error, response, body) {
-                        if(error){
-                            deactivate(obj._id, function(err, res){
-                                if(err) {
-                                    console.log('error:' + err);
-                                    cb(err,null);
-                                }else {
-                                    cb(error, null);
-                                }
-                            });
-                        }else {
-
-                            var data = JSON.parse(body);
-
-                            if(!data.availableProcessors) {
-                                deactivate(obj._id, function(err, res){
-                                    if(err) {
-                                        console.log('error:' + err);
-                                        cb(err,null);
-                                    }else {
-                                        cb(error, null);
-                                    }
-                                });
-                            }
-
-                        }
-                    });
-                }, function () {
-                    State.find({},function(err,docs){
-                        console.log(docs.length+' nodes left after cleaning.');
-                        cb();
-                    });
-                });
-            }
-        } else {
-            cb()
-        }
-    });
-};
-
 exports.buildStats = async function(){
 
-    Peer.find({}, function(err,peers) {
-        State.aggregate([
+    const peers = await Peer.find({});
+
+    const result = await State.aggregate([
             {
                 $project: {
                     activeNodes: {$cond:["$activeNodes",1,0]},
@@ -742,109 +440,65 @@ exports.buildStats = async function(){
                     storageRethink: {$sum:"$storageRethink"}
                 }
             }
-        ], function (err, result) {
-            if (err) {
-                console.log(err);
-                //cb(err,null);
-            } else {
+        ]);
 
-                if(result.length) {
+        if(result.length) {
 
-                    var data = result[0];
+            var data = result[0];
 
-                    delete data._id;
+            // get the most common version
+            const versionMap = {};
+            let mostUsedVersion = "";
+            let mostUsedVersionCount = 0;
 
-                    data.totalNodes = peers.length;
-
-                    Stats.findOneAndUpdate({_id: 'nodeStats'}, data, {upsert: true}, function (err, doc) {
-                        if (err) {
-                            console.log(err);
-                            //cb(err, null)
-                        } else {
-                            //cb(null, doc);
-                        }
-                    });
-
-                }else{
-
-                    //cb('No peers in db. No stats compiled.');
-
+            for (peer of peers) {
+                if (versionMap[peer.version]) {
+                    versionMap[peer.version]++;
+                } else {
+                    versionMap[peer.version] = 1;
                 }
-
             }
-        });
-    });
 
-};
-/*
-exports.getGeoIP = function(force, cb){
-    console.log("Entering getGeoIP geoip");
-
-    State.find({}, function(err,nodes){
-
-        if(err){
-            console.log('Could not get states for geoip', err);
-            cb(err,null)
-        }else{
-            console.log('States retrieved, going to fetch geoip for ' + nodes.length + ' nodes');
-            async.eachLimit(nodes,10,function(node,cb){
-                console.log("geoip node.geoipfetched=", node.geoipfetched);
-
-                if(force || !node.geoipfetched){
-                    console.log('Getting geoip data for '+node._id, getGeoipUrl(node._id));
-                    
-                    request({uri:getGeoipUrl(node._id),timeout:5000}, function (error, response, body) {
-                    	if (error) {
-                            console.log('Could not get geoip data for '+node._id, error);
-                            cb(err,null);
-                        } else {	
-	                        var geodata = null;
-
-                            try {
-                                geodata = JSON.parse(body);
-                            } catch(err) {
-                                console.log("Could not parse geoip data for "+node._id, err);
-                                cb(err)
-                            }
-
-                            if (geodata) {
-                                if (body === null || geodata.status !== 'success') {
-                                    console.log('Could not get geoip data for ' + node._id + ', Service returned failed status, response: ', geodata.message);
-                                    cb();
-                                } else {
-                                    var data = {};
-                                    data.geoip = {
-                                        country_code: geodata.countryCode,
-                                        country_name: geodata.country,
-                                        region_code: geodata.region,
-                                        region_name: geodata.regionName,
-                                        city: geodata.city,
-                                        zip_code: geodata.zip,
-                                        time_zone: geodata.timezone,
-                                        latitude: geodata.lat,
-                                        longitude: geodata.lon,
-                                    };
-                                    data.geoipfetched = true;
-
-                                    State.findOneAndUpdate({_id: node._id}, data, function (err, res) {
-                                        if (err)
-                                            console.log(err);
-                                        cb();
-                                    });
-                                }
-                            }
-                        }
-                    });
-                }else{
-                    cb();
+            Object.keys(versionMap).forEach((key) => {
+                const value = versionMap[key];
+                if (value > mostUsedVersionCount) {
+                    mostUsedVersion = key;
+                    mostUsedVersionCount = value;
                 }
+            });
 
-            }, function(){
-                cb(null, 'Done');
-            })
+            delete data._id;
+
+            data.totalNodes = peers.length;
+            data.version = mostUsedVersion;
+
+            await Stats.findOneAndUpdate({_id: 'nodeStats'}, data, {upsert: true});
+
+            console.log("Stats successfully updated!");
+        } else {
+            console.log('No peers in db. No stats compiled.');
         }
-
-    });
-
 };
-*/
+
+exports.cleanInactivePeers = async function(){
+    let peersProcessed = 0;
+    let inactivePeersProcessed = 0;
+    let peersDeleted = 0;
+
+    for await (const peer of Peer.find({})) {
+        if (!peer.active) {
+            const lastConnected = peer.lastConnected;
+
+            if (new Date().getTime() - lastConnected.getTime() > (config.removeInactiveAfterMinutes * 60 * 1000)) {
+                await Peer.deleteOne({_id: peer._id});
+
+                console.log("Peer has last been connected on " + lastConnected + ", deleted " + peer._id);
+                peersDeleted++;
+            }
+            inactivePeersProcessed++;
+        }
+        peersProcessed++;
+    }
+
+    console.log('---- Processed ' + peersProcessed + ' peers (' + inactivePeersProcessed + ' inactive), deleted: ' + peersDeleted + ' ----');
+};
