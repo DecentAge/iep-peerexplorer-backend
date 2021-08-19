@@ -40,6 +40,7 @@ exports.getpaged = function(params, cb){
     if(params.order=='desc')
         sort[params.filter]=-1;
 
+    /*
     Peer.aggregate([
         {
             $lookup: {
@@ -80,11 +81,9 @@ exports.getpaged = function(params, cb){
                 cb(null,list);
             }
         })
+*/
 
-/*
     Peer.find({})
-        .skip(params.page*params.results)
-        .limit(params.results)
         .exec(async function(err, docs){
             if(err){
                 //console.log(docs.length);
@@ -113,10 +112,11 @@ exports.getpaged = function(params, cb){
                     }
                 });
 
-                cb(null,list);
+                const pagedList = list.slice(params.page*params.results, (params.page*params.results) + params.results);
+
+                cb(null,pagedList);
             }
         })
- */
 };
 
 exports.findByIP = function(ip, params, cb){
