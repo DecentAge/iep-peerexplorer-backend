@@ -290,8 +290,9 @@ exports.crawlPeer = async function(ip, port, processedPeers) {
 
 
 
-
 exports.processPeers = async function() {
+    console.log("Entering processPeers");
+
     let i = 0;
 
     for await (const peer of Peer.find({})) {
@@ -314,9 +315,12 @@ exports.processPeers = async function() {
     }
 
     console.log('---- Processed ' + i + ' peers ----');
+    console.log("Exiting processPeers");
 };
 
 exports.createUpdatePeerState = async function(ip, peerStateData) {
+    console.log("Entering createUpdatePeerState");
+
     peerStateData.rank = calculateRank(peerStateData);
     peerStateData.lastUpdated = moment().toDate();
 
@@ -342,9 +346,12 @@ exports.createUpdatePeerState = async function(ip, peerStateData) {
     } catch (error) {
         console.error("Could not create or update peerState for " + ip, error);
     }
+
+    console.log("Exiting createUpdatePeerState");
 };
 
 exports.createPerfLog = async function(ip, peerStateData) {
+    console.log("Entering createUpdatePeerState");
     try {
         if (peerStateData.availableProcessors) {
             const perf = new Perf({
@@ -360,11 +367,16 @@ exports.createPerfLog = async function(ip, peerStateData) {
     } catch (error) {
         console.error("Could not create perf for " + ip, error);
     }
+
+    console.log("Exiting createUpdatePeerState");
 };
 
 exports.createGeoIP = async function(ip, geodata) {
+    console.log("Entering createGeoIP");
+
     try {
         const geoip = new GeoIP({
+            _id: ip,
             country_code: geodata.countryCode,
             country_name: geodata.country,
             region_code: geodata.region,
@@ -380,9 +392,12 @@ exports.createGeoIP = async function(ip, geodata) {
     } catch (error) {
         console.error("Could not create geoIP for " + ip, error);
     }
+
+    console.log("Exiting createGeoIP");
 };
 
 exports.buildStats = async function(){
+    console.log("Entering buildStats");
 
     const peers = await Peer.find({});
 
@@ -478,9 +493,12 @@ exports.buildStats = async function(){
         } else {
             console.log('No peers in db. No stats compiled.');
         }
+    console.log("Exiting buildStats");
 };
 
 exports.cleanInactivePeers = async function(){
+    console.log("Entering cleanInactivePeers");
+
     let peersProcessed = 0;
     let inactivePeersProcessed = 0;
     let peersDeleted = 0;
@@ -501,4 +519,5 @@ exports.cleanInactivePeers = async function(){
     }
 
     console.log('---- Processed ' + peersProcessed + ' peers (' + inactivePeersProcessed + ' inactive), deleted: ' + peersDeleted + ' ----');
+    console.log("Exiting cleanInactivePeers");
 };
