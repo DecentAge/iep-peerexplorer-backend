@@ -40,7 +40,6 @@ exports.getpaged = function(params, cb){
     if(params.order=='desc')
         sort[params.filter]=-1;
 
-    /*
     Peer.aggregate([
         {
             $lookup: {
@@ -50,7 +49,10 @@ exports.getpaged = function(params, cb){
                 as: 'peerState'}
             },
         {
-            $unwind: "$peerState"  //remove array
+            $unwind: {
+                path: "$peerState",
+                preserveNullAndEmptyArrays: true
+            }  //remove array
         },
         {
             $sort: {'peerState.rank': -1}
@@ -81,8 +83,7 @@ exports.getpaged = function(params, cb){
                 cb(null,list);
             }
         })
-*/
-
+/*
     Peer.find({})
         .exec(async function(err, docs){
             if(err){
@@ -117,6 +118,7 @@ exports.getpaged = function(params, cb){
                 cb(null,pagedList);
             }
         })
+    */
 };
 
 exports.findByIP = function(ip, params, cb){
