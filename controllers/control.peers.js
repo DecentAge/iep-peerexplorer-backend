@@ -263,11 +263,11 @@ exports.crawlPeer = async function(ip, port, processedPeers) {
 
                             await Peer.updateOne({_id: address}, peerData, {upsert: true, new: true});
 
-                            console.log("Peer successfully saved, " + ip);
+                            console.log("Peer successfully saved, " + address);
                         } else {
                             await Peer.deleteOne({_id: address});
 
-                            console.log("Peer now blacklisted, deleted " + ip);
+                            console.log("Peer now blacklisted, deleted " + address);
                         }
                     } else {
                         // delete fields that should not be saved and set to inactive because not connected state
@@ -277,7 +277,7 @@ exports.crawlPeer = async function(ip, port, processedPeers) {
 
                         await Peer.updateOne({_id: address}, peerData, {upsert: true, new: true});
 
-                        console.log("Peer successfully saved, " + ip);
+                        console.log("Peer successfully saved, " + address);
                     }
 
                     // recursively crawl this peer
