@@ -499,23 +499,30 @@ exports.healthCheckPeers = async function() {
         for (const peerToRequest of peers) {
             peersIterated++;
 
-            // never check for peer for himself
+            // never check on peer for himself
             if (peerToRequest._id === peerToCheck._id) {
                 continue;
             }
 
-            const peerData = await module.exports.getPeer(peerToRequest._id, peerToRequest.apiPort, peerToCheck._id);
+            let peerData;
 
-            if (peerData.errorCode) {
+            try {
+                peerData = await module.exports.getPeer(peerToRequest._id, peerToRequest.apiPort, peerToCheck._id);
+            } catch (e) {
+                console.error("Peer not accessible", peerToRequest._id);
+            }
+
+            const p = peerToRequest.apiPort ? peerToRequest.apiPort : config.nodeApiPort;
+            const url = 'http://' + peerToRequest._id + ':' + p + '/api?requestType=getPeer&peer=' + peerToCheck._id;
+
+            if (peerData && peerData.errorCode) {
                 // Unknown peer, keep iterating until it is found
                 if (peerData.errorCode === 5) {
                     continue;
                 }
 
-                const p = peerToRequest.apiPort ? peerToRequest.apiPort : config.nodeApiPort;
-                const url = 'http://' + peerToRequest._id + ':' + p + '/api?requestType=getPeer&peer=' + peerToCheck._id;
                 console.error("Unexpected error from getPeer, request to " + url, peerData);
-            } else {
+            } else if (peerData) {
                 delete peerData.address;
                 delete peerData.blacklisted;
                 peerData.lastConnected = new Date();
@@ -528,12 +535,16 @@ exports.healthCheckPeers = async function() {
                     peerData.active = false;
                 }
 
-                await Peer.updateOne({_id: peerToCheck._id}, peerData);
+                try {
+                    await Peer.updateOne({_id: peerToCheck._id}, peerData);
+                } catch (e) {
+                    console.error("Could not update peer status", e);
+                }
 
                 // Peer found and updated, break loop
                 break;
             }
-        }
+    }
 
         peersProcessed++;
     }
