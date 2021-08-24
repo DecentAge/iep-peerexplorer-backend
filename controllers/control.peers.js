@@ -525,14 +525,15 @@ exports.healthCheckPeers = async function() {
             } else if (peerData) {
                 delete peerData.address;
                 delete peerData.blacklisted;
-                peerData.lastConnected = new Date();
 
                 if (peerData.state === 1) {
                     console.log("Peer found on iteration " + peersIterated + ", state CONNECTED - set active=true");
+                    peerData.lastConnected = new Date();
                     peerData.active = true;
                 } else {
                     console.log("Peer found on iteration " + peersIterated + ", state not CONNECTED - set active=false");
                     peerData.active = false;
+                    peersDeactivated++;
                 }
 
                 try {
