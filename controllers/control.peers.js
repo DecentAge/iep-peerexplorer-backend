@@ -112,7 +112,7 @@ exports.getPeer = async function(ip, port, peer){
     const p = port ? port : config.nodeApiPort;
     const url = 'http://' + ip + ':' + p + '/api?requestType=getPeer&peer=' + peer;
 
-    console.log('getPeer:  ' + url );
+    console.debug('getPeer:  ' + url );
 
     var json = null;
     try {
@@ -129,7 +129,7 @@ exports.getPeers = async function(ip, port){
     const p = port ? port : config.nodeApiPort;
     const url = 'http://' + ip + ':' + p + '/api?requestType=getPeers&state=CONNECTED';
 
-    console.log('getPeers:  ' + url );
+    console.debug('getPeers:  ' + url );
 
     let json = null;
     try {
@@ -150,7 +150,7 @@ exports.getPeerState = async function(ip, port){
     const p = port ? port : config.nodeApiPort;
     const url = 'http://' + ip + ':' + p + '/api?requestType=getPeerState';
 
-    console.log('getPeerState:  ' + url );
+    console.debug('getPeerState:  ' + url );
 
     let json = null;
     try {
@@ -177,7 +177,7 @@ exports.getGeoIP = async function(ip){
 
         if (geodata) {
             if (geodata.status !== 'success') {
-                console.log('Could not get geoip data for ' + ip + ', Service returned failed status, response: ', geodata.message);
+                console.warn('Could not get geoip data for ' + ip + ', Service returned failed status, response: ', geodata.message);
             } else {
                 return geodata;
             }
@@ -188,7 +188,7 @@ exports.getGeoIP = async function(ip){
 };
 
 exports.crawl = async function() {
-    console.log("Entering crawl");
+    console.debug("Entering crawl");
 
     let i = 0;
     const processedPeers = [];
@@ -204,18 +204,17 @@ exports.crawl = async function() {
         await module.exports.crawlPeer(config.nodeApiHost, config.nodeApiPort, processedPeers);
     }
 
-    console.log('---- Crawled ' + processedPeers.length + ' IPs ----');
-    console.log("Exiting crawl");
-    return Promise.resolve();
+    console.log('Crawled ' + processedPeers.length + ' IPs');
+    console.debug("Exiting crawl");
 };
 
 exports.crawlPeer = async function(ip, port, processedPeers) {
-    console.log("Entering crawlPeer, " + ip + ":" + port);
+    console.debug("Entering crawlPeer, " + ip + ":" + port);
 
     if (processedPeers.includes(ip)) {
-        console.log("Peer with IP " + ip + " already processed, skipping");
+        console.debug("Peer with IP " + ip + " already processed, skipping");
     } else {
-        console.log("Crawling IP " + ip);
+        console.debug("Crawling IP " + ip);
 
         const peers = await module.exports.getPeers(ip);
 
@@ -251,33 +250,21 @@ exports.crawlPeer = async function(ip, port, processedPeers) {
                         hallmark
                     } = peerData;
 
-                    // if peer is connected
-                    if (state === 1) {
-                        // only add non-blacklisted peers, delete if an existing peer gets blacklisted
-                        if (!blacklisted) {
-                            // delete fields that should not be saved and update last connect time
-                            delete peerData.address;
-                            delete peerData.blacklisted;
-                            peerData.active = true;
-                            peerData.lastConnected = new Date();
-
-                            await Peer.updateOne({_id: address}, peerData, {upsert: true, new: true});
-
-                            console.log("Peer successfully saved, " + ip);
-                        } else {
-                            await Peer.deleteOne({_id: address});
-
-                            console.log("Peer now blacklisted, deleted " + ip);
-                        }
-                    } else {
-                        // delete fields that should not be saved and set to inactive because not connected state
+                    // only add non-blacklisted peers, delete if an existing peer gets blacklisted
+                    if (!blacklisted) {
+                        // delete fields that should not be saved and update last connect time
                         delete peerData.address;
                         delete peerData.blacklisted;
-                        peerData.active = false;
+                        peerData.active = true;
+                        peerData.lastConnected = new Date();
 
                         await Peer.updateOne({_id: address}, peerData, {upsert: true, new: true});
 
-                        console.log("Peer successfully saved, " + ip);
+                        console.debug("Peer successfully saved, " + address);
+                    } else {
+                        await Peer.deleteOne({_id: address});
+
+                        console.log("Peer now blacklisted, deleted " + address);
                     }
 
                     // recursively crawl this peer
@@ -290,8 +277,9 @@ exports.crawlPeer = async function(ip, port, processedPeers) {
 
 
 
-
 exports.processPeers = async function() {
+    console.debug("Entering processPeers");
+
     let i = 0;
 
     for await (const peer of Peer.find({})) {
@@ -313,10 +301,13 @@ exports.processPeers = async function() {
         i++;
     }
 
-    console.log('---- Processed ' + i + ' peers ----');
+    console.log('Processed ' + i + ' peers');
+    console.debug("Exiting processPeers");
 };
 
 exports.createUpdatePeerState = async function(ip, peerStateData) {
+    console.debug("Entering createUpdatePeerState");
+
     peerStateData.rank = calculateRank(peerStateData);
     peerStateData.lastUpdated = moment().toDate();
 
@@ -342,9 +333,12 @@ exports.createUpdatePeerState = async function(ip, peerStateData) {
     } catch (error) {
         console.error("Could not create or update peerState for " + ip, error);
     }
+
+    console.debug("Exiting createUpdatePeerState");
 };
 
 exports.createPerfLog = async function(ip, peerStateData) {
+    console.debug("Entering createUpdatePeerState");
     try {
         if (peerStateData.availableProcessors) {
             const perf = new Perf({
@@ -360,11 +354,16 @@ exports.createPerfLog = async function(ip, peerStateData) {
     } catch (error) {
         console.error("Could not create perf for " + ip, error);
     }
+
+    console.debug("Exiting createUpdatePeerState");
 };
 
 exports.createGeoIP = async function(ip, geodata) {
+    console.debug("Entering createGeoIP");
+
     try {
         const geoip = new GeoIP({
+            _id: ip,
             country_code: geodata.countryCode,
             country_name: geodata.country,
             region_code: geodata.region,
@@ -380,9 +379,12 @@ exports.createGeoIP = async function(ip, geodata) {
     } catch (error) {
         console.error("Could not create geoIP for " + ip, error);
     }
+
+    console.debug("Exiting createGeoIP");
 };
 
 exports.buildStats = async function(){
+    console.debug("Entering buildStats");
 
     const peers = await Peer.find({});
 
@@ -478,11 +480,85 @@ exports.buildStats = async function(){
         } else {
             console.log('No peers in db. No stats compiled.');
         }
+    console.debug("Exiting buildStats");
 };
 
-exports.cleanInactivePeers = async function(){
+exports.healthCheckPeers = async function() {
+    console.debug("Entering healthCheckPeers");
+
+    const peers = await Peer.find({});
+
+
     let peersProcessed = 0;
-    let inactivePeersProcessed = 0;
+    let peersDeactivated = 0;
+
+    for (const peerToCheck of peers) {
+
+        let peersIterated = 0;
+
+        for (const peerToRequest of peers) {
+            peersIterated++;
+
+            // never check on peer for himself
+            if (peerToRequest._id === peerToCheck._id) {
+                continue;
+            }
+
+            let peerData;
+
+            try {
+                peerData = await module.exports.getPeer(peerToRequest._id, peerToRequest.apiPort, peerToCheck._id);
+            } catch (e) {
+                console.error("Peer not accessible", peerToRequest._id);
+            }
+
+            const p = peerToRequest.apiPort ? peerToRequest.apiPort : config.nodeApiPort;
+            const url = 'http://' + peerToRequest._id + ':' + p + '/api?requestType=getPeer&peer=' + peerToCheck._id;
+
+            if (peerData && peerData.errorCode) {
+                // Unknown peer, keep iterating until it is found
+                if (peerData.errorCode === 5) {
+                    continue;
+                }
+
+                console.error("Unexpected error from getPeer, request to " + url, peerData);
+            } else if (peerData) {
+                delete peerData.address;
+                delete peerData.blacklisted;
+
+                if (peerData.state === 1) {
+                    console.log("Peer found on iteration " + peersIterated + ", state CONNECTED - set active=true");
+                    peerData.lastConnected = new Date();
+                    peerData.active = true;
+                } else {
+                    console.log("Peer found on iteration " + peersIterated + ", state not CONNECTED - set active=false");
+                    peerData.active = false;
+                    peersDeactivated++;
+                }
+
+                try {
+                    await Peer.updateOne({_id: peerToCheck._id}, peerData);
+                } catch (e) {
+                    console.error("Could not update peer status", e);
+                }
+
+                // Peer found and updated, break loop
+                break;
+            }
+    }
+
+        peersProcessed++;
+    }
+
+    console.log('Processed ' + peersProcessed + ' peers, deactivated: ' + peersDeactivated);
+    console.debug("Exiting healthCheckPeers");
+};
+
+exports.cleanDeactivatedPeers = async function(){
+    console.debug("Entering cleanDeactivatedPeers");
+
+    let peersProcessed = 0;
+    let deactivatedPeersProcessed = 0;
     let peersDeleted = 0;
 
     for await (const peer of Peer.find({})) {
@@ -495,10 +571,11 @@ exports.cleanInactivePeers = async function(){
                 console.log("Peer has last been connected on " + lastConnected + ", deleted " + peer._id);
                 peersDeleted++;
             }
-            inactivePeersProcessed++;
+            deactivatedPeersProcessed++;
         }
         peersProcessed++;
     }
 
-    console.log('---- Processed ' + peersProcessed + ' peers (' + inactivePeersProcessed + ' inactive), deleted: ' + peersDeleted + ' ----');
+    console.log('Processed ' + peersProcessed + ' peers (' + deactivatedPeersProcessed + ' inactive), deleted: ' + peersDeleted);
+    console.debug("Exiting cleanInactivePeers");
 };

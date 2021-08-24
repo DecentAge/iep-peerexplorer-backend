@@ -137,11 +137,17 @@ server.on('listening', function(){
                 .then(() => {
                     console.log("=========================\nBUILD STATS FINISHED\n=========================");
 
-                    console.log("=========================\nSTART CLEAN INACTIVE PEERS\n=========================");
-                    return peers.cleanInactivePeers();
+                    console.log("=========================\nSTART HEALTH CHECK PEERS\n=========================");
+                    return peers.healthCheckPeers();
                 })
                 .then(() => {
-                    console.log("=========================\nCLEAN INACTIVE PEERS FINISHED\n=========================");
+                    console.log("=========================\nHEALTH CHECK PEERS FINISHED\n=========================");
+
+                    console.log("=========================\nSTART CLEAN DEACTIVATED PEERS\n=========================");
+                    return peers.cleanDeactivatedPeers();
+                })
+                .then(() => {
+                    console.log("=========================\nCLEAN DEACTIVATED PEERS FINISHED\n=========================");
                 })
                 .catch((error) => {
                     console.error("Error occurred during cronjob", error);
@@ -150,54 +156,6 @@ server.on('listening', function(){
 		start:true,
         runOnInit: true,
 	});
-
-    cronjobs.pingOnlineNodes = new CronJob({
-        cronTime:'0 0 0 * * *',
-        onTick: function() {
-            console.log("Ping Cron Initiated");
-            var total = 0;
-            var alive = 0;
-
-            Peers.find({}, function(err, docs) {
-                if (err) {
-                    console.log(err);
-                } else {
-                    var hosts = docs.map(function(x){
-                        return x._id;
-                    });
-
-                    var session = ping.createSession();
-
-                    if (hosts != null) {
-                        console.log(hosts.length +" hosts found");
-                        hosts.forEach(function (host) {
-                            session.pingHost(host, function (error, target) {
-                                total++;
-                                if (!error){
-                                    alive++;
-                                }
-                                if (hosts.length == total + 1) {
-                                    var data = {};
-                                    data.nodesOnline = alive;
-                                    console.log(alive +" hosts online found");
-
-                                    Stats.findOneAndUpdate({_id: 'nodeStats'}, data, {upsert: true}, function (err, doc) {
-                                        if (err) {
-                                            console.log(err);
-                                        } else {
-                                            console.log(doc);
-                                        }
-                                    });
-                                }
-                            });
-                        });
-                    }
-                }
-            })
-        },
-        start:true
-    });
-
 
 });
 
