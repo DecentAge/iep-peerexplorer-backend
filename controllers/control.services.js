@@ -62,11 +62,8 @@ exports.getpaged = function(params, cb){
         .limit(params.results)
         .exec(async function(err, result){
             if(err){
-                //console.log(docs.length);
                 cb(err,null);
             }else{
-                console.log(result)
-
                 const list = [];
 
                 for (peer of result) {
