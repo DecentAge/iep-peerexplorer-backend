@@ -483,19 +483,23 @@ exports.buildStats = async function(){
     console.debug("Exiting buildStats");
 };
 
-exports.healthCheckPeers = async function() {
+exports.healthCheckAndCleanPeers = async function() {
     console.debug("Entering healthCheckPeers");
 
     const peers = await Peer.find({});
 
-
     let peersProcessed = 0;
     let peersDeactivated = 0;
+    let deactivatedPeersProcessed = 0;
+    let peersDeleted = 0;
 
     for (const peerToCheck of peers) {
 
         let peersIterated = 0;
+        let peerProcessed = false;
 
+        // iterate through all peers and getPeer for peerToCheck
+        // set active if state returns 1, deactivate if state is not 1, delete if no response from any peer
         for (const peerToRequest of peers) {
             peersIterated++;
 
@@ -504,13 +508,7 @@ exports.healthCheckPeers = async function() {
                 continue;
             }
 
-            let peerData;
-
-            try {
-                peerData = await module.exports.getPeer(peerToRequest._id, peerToRequest.apiPort, peerToCheck._id);
-            } catch (e) {
-                console.error("Peer not accessible", peerToRequest._id);
-            }
+            const peerData = await module.exports.getPeer(peerToRequest._id, peerToRequest.apiPort, peerToCheck._id);
 
             const p = peerToRequest.apiPort ? peerToRequest.apiPort : config.nodeApiPort;
             const url = 'http://' + peerToRequest._id + ':' + p + '/api?requestType=getPeer&peer=' + peerToCheck._id;
@@ -543,39 +541,36 @@ exports.healthCheckPeers = async function() {
                 }
 
                 // Peer found and updated, break loop
+                peerProcessed = true;
                 break;
             }
-    }
+        }
 
-        peersProcessed++;
-    }
+        // could not get any peer info after requesting getPeer on all peers, delete
+        if (!peerProcessed) {
+            await Peer.deleteOne({_id: peerToCheck._id});
 
-    console.log('Processed ' + peersProcessed + ' peers, deactivated: ' + peersDeactivated);
-    console.debug("Exiting healthCheckPeers");
-};
+            console.log("Could not get any peer info after requesting getPeer on all peers, deleted " + peerToCheck._id);
+            peersDeleted++;
+        }
 
-exports.cleanDeactivatedPeers = async function(){
-    console.debug("Entering cleanDeactivatedPeers");
-
-    let peersProcessed = 0;
-    let deactivatedPeersProcessed = 0;
-    let peersDeleted = 0;
-
-    for await (const peer of Peer.find({})) {
-        if (!peer.active) {
-            const lastConnected = peer.lastConnected;
+        // delete peer after n minutes of inactivity (configurable)
+        if (!peerToCheck.active) {
+            const lastConnected = peerToCheck.lastConnected;
 
             if (new Date().getTime() - lastConnected.getTime() > (config.removeInactiveAfterMinutes * 60 * 1000)) {
-                await Peer.deleteOne({_id: peer._id});
+                await Peer.deleteOne({_id: peerToCheck._id});
 
-                console.log("Peer has last been connected on " + lastConnected + ", deleted " + peer._id);
+                console.log("Peer has last been connected on " + lastConnected + ", deleted " + peerToCheck._id);
                 peersDeleted++;
             }
             deactivatedPeersProcessed++;
         }
+
         peersProcessed++;
     }
 
-    console.log('Processed ' + peersProcessed + ' peers (' + deactivatedPeersProcessed + ' inactive), deleted: ' + peersDeleted);
-    console.debug("Exiting cleanInactivePeers");
+    console.log('Processed ' + peersProcessed + ' peers (' + deactivatedPeersProcessed + ' total inactive, ' + peersDeactivated + ' deactivated just now, ' + peersDeleted + ' peers deleted');
+
+    console.debug("Exiting healthCheckPeers");
 };

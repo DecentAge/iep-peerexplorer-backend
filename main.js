@@ -137,17 +137,11 @@ server.on('listening', function(){
                 .then(() => {
                     console.log("=========================\nBUILD STATS FINISHED\n=========================");
 
-                    console.log("=========================\nSTART HEALTH CHECK PEERS\n=========================");
-                    return peers.healthCheckPeers();
+                    console.log("=========================\nSTART HEALTH CHECK AND CLEAN PEERS\n=========================");
+                    return peers.healthCheckAndCleanPeers();
                 })
                 .then(() => {
-                    console.log("=========================\nHEALTH CHECK PEERS FINISHED\n=========================");
-
-                    console.log("=========================\nSTART CLEAN DEACTIVATED PEERS\n=========================");
-                    return peers.cleanDeactivatedPeers();
-                })
-                .then(() => {
-                    console.log("=========================\nCLEAN DEACTIVATED PEERS FINISHED\n=========================");
+                    console.log("=========================\nHEALTH CHECK AND CLEAN PEERS FINISHED\n=========================");
                 })
                 .catch((error) => {
                     console.error("Error occurred during cronjob", error);
