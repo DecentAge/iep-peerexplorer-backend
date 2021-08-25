@@ -27,6 +27,6 @@ module.exports = {
         pass:'peerexplorerTest',
         host:'mongodb://peerexplorer-db:27017/peers'
     },
-    adminkey:'**YourAdminKeyHere**'
-
+    adminkey:'**YourAdminKeyHere**',
+    logLevel: process.env.IEP_PEEREXPLORER_BACKEND_LOGLEVEL || 'info' // or debug for more details
 };
