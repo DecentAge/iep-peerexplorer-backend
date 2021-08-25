@@ -555,7 +555,6 @@ exports.healthCheckAndCleanPeers = async function() {
 
                 try {
                     await Peer.updateOne({_id: peerToCheck._id}, peerData);
-                    callANotExistingFunction();
                 } catch (e) {
                     logger.error("Could not update peer status", e);
                 }
