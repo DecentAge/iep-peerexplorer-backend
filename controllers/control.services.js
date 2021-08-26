@@ -179,7 +179,7 @@ exports.getPerfLog = function(data, cb){
 
 exports.getStats = function(cb){
 
-    Stats.findOne({_id:'nodeStats'}, async function(err, doc){
+    Stats.findOne({_id:'nodeStats'}, function(err, doc){
         if(err){
             cb(err,null)
         }else{
