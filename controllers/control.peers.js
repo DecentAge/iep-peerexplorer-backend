@@ -274,7 +274,6 @@ exports.crawlPeer = async function(ip, port, processedPeers) {
                         // delete fields that should not be saved and update last connect time
                         delete peerData.address;
                         delete peerData.blacklisted;
-                        peerData.active = true;
                         peerData.lastConnected = new Date();
 
                         await Peer.updateOne({_id: address}, peerData, {upsert: true, new: true});
