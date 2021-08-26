@@ -44,7 +44,7 @@ const {
 	mongoose.connect(url, options);
 
 mongoose.connection.on('connected', function () {
-  console.log('Mongoose default connection open to ' + config.mongodb.host);
+  console.log('Mongoose default connection open to ' + MONGO_HOSTNAME);
 });
 
 // If the connection throws an error

@@ -16,17 +16,12 @@
 
 module.exports = {
     port: 8888,
-    publicPath: process.env.IEP_PEEREXPLORER_BACKEND_PATH || '/peerexplorer-backend',
+    publicPath: process.env.PUBLIC_PATH || '/peerexplorer-backend',
     nodeApiHost: process.env.IEP_PEEREXPLORER_BACKEND_NODE_API_HOST || '199.127.137.169',
     nodeApiPort: process.env.IEP_PEEREXPLORER_BACKEND_NODE_API_PORT || '',
     removeInactiveAfterMinutes: process.env.IEP_PEEREXPLORER_BACKEND_REMOVE_INACTIVE_PEERS_MINUTES || 60,
     concurrent: 15,
     rankFactor:1.00,
-    mongodb:{
-        user:'peerexplorer',
-        pass:'peerexplorerTest',
-        host:'mongodb://peerexplorer-db:27017/peers'
-    },
     adminkey:'**YourAdminKeyHere**',
     logLevel: process.env.IEP_PEEREXPLORER_BACKEND_LOGLEVEL || 'info' // or debug for more details
 };
