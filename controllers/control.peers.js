@@ -146,7 +146,7 @@ exports.getPeer = async function(ip, port, peer){
 
 exports.getPeers = async function(ip, port){
     const p = port ? port : config.nodeApiPort;
-    const url = 'http://' + ip + ':' + p + '/api?requestType=getPeers&state=CONNECTED';
+    const url = 'http://' + ip + ':' + p + '/api?requestType=getPeers&active=true';
 
     logger.debug('getPeers:  ' + url );
 
@@ -541,7 +541,7 @@ exports.healthCheckAndCleanPeers = async function() {
                 delete peerData.address;
                 delete peerData.blacklisted;
 
-                if (peerData.state === 1) {
+                if (peerData.state === 1 || peerData.state === 2) {
                     logger.info("Peer found on iteration " + peersIterated + ", state CONNECTED - set active=true");
                     peerData.lastConnected = new Date();
                     peerData.active = true;
