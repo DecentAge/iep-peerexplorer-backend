@@ -541,7 +541,7 @@ exports.healthCheckAndCleanPeers = async function() {
                 delete peerData.address;
                 delete peerData.blacklisted;
 
-                if (peerData.state === 1 || peerData.state === 2) {
+                if (peerData.state === 0 || peerData.state === 1) {
                     logger.info("Peer found on iteration " + peersIterated + ", state CONNECTED - set active=true");
                     peerData.lastConnected = new Date();
                     peerData.active = true;
