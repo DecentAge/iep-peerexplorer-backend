@@ -254,7 +254,7 @@ exports.crawlPeer = async function(ip, port, processedPeers) {
                         downloadedVolume,
                         inbound,
                         inboundWebSocket,
-                        lastConnectionAttempt,
+                        lastConnectAttempt,
                         lastUpdated,
                         outboundWebSocket,
                         platform,

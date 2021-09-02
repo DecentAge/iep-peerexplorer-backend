@@ -29,7 +29,7 @@ var Peer = new Schema({
     downloadedVolume: {type: Number},
     inbound: {type: Boolean},
     inboundWebSocket: {type: Boolean},
-    lastConnectionAttempt: {type: Number},
+    lastConnectAttempt: {type: Number},
     lastUpdated: {type: Number},
     outboundWebSocket: {type: Boolean},
     platform: {type: String},
