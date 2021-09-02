@@ -138,7 +138,7 @@ exports.getPeer = async function(ip, port, peer){
         const {data} = await axiosInstance.get(url);
         json = data;
     } catch(err) {
-        logger.error("Could not get peer from " + url, err);
+        logger.debug("Could not get peer from " + url, err);
     }
 
     return json;
@@ -155,7 +155,7 @@ exports.getPeers = async function(ip, port){
         const {data} = await axiosInstance.get(url);
         json = data;
     } catch(err) {
-        logger.error("Could not get peers from " + url, err);
+        logger.debug("Could not get peers from " + url, err);
     }
 
     if (json && json.peers) {
@@ -176,7 +176,7 @@ exports.getPeerState = async function(ip, port){
         const {data} = await axiosInstance.get(url);
         json = data;
     } catch(err) {
-        logger.error("Could not get peerState from " + url, err);
+        logger.debug("Could not get peerState from " + url, err);
     }
 
     return json;
@@ -191,7 +191,7 @@ exports.getGeoIP = async function(ip){
             const {data} = await axiosInstance.get(getGeoipUrl(ip));
             geodata = data;
         } catch (err) {
-            logger.error("Could not get geoIP data for " + ip, err);
+            logger.debug("Could not get geoIP data for " + ip, err);
         }
 
         if (geodata) {
@@ -587,7 +587,7 @@ exports.healthCheckAndCleanPeers = async function() {
         peersProcessed++;
     }
 
-    logger.info('Processed ' + peersProcessed + ' peers (' + deactivatedPeersProcessed + ' total inactive, ' + peersDeactivated + ' deactivated just now, ' + peersDeleted + ' peers deleted');
+    logger.info('Processed ' + peersProcessed + ' peers (' + deactivatedPeersProcessed + ' total inactive, ' + peersDeactivated + ' deactivated just now, ' + peersDeleted + ' peers deleted)');
 
     logger.debug("Exiting healthCheckPeers");
 };
