@@ -275,6 +275,12 @@ exports.crawlPeer = async function(ip, port, processedPeers) {
                         delete peerData.address;
                         delete peerData.blacklisted;
 
+                        const existing = await Peer.findOne({_id: address});
+
+                        if (existing && !existing.lastConnected) {
+                            peerData.lastConnected = new Date();
+                        }
+
                         await Peer.updateOne({_id: address}, peerData, {upsert: true, new: true});
 
                         logger.debug("Peer successfully saved, " + address);

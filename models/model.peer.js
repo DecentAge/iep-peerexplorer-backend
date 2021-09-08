@@ -21,7 +21,7 @@ const config = require('../core/config')
 
 var Peer = new Schema({
     _id:String,
-    lastConnected:{type:Date, default: () => new Date()},
+    lastConnected:{type:Date},
     active:{type:Boolean, default:true},
     apiPort:{type:Number, default:config.nodeApiPort},
     announcedAddress:{type:String},
