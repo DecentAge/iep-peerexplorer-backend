@@ -111,6 +111,8 @@ exports.axiosInstance = axios.create({
     timeout: 5000
 });
 
+var crawlLock = false;
+
 server.on('listening', function(){
 
     console.log('Listening on port '+port);
@@ -119,33 +121,42 @@ server.on('listening', function(){
 	cronjobs.crawl = new CronJob({
 		cronTime:'00 */7 * * * *',
 		onTick: function() {
-            console.log("=========================\nSTART CRAWL\n=========================");
+		    if (!crawlLock) {
+                crawlLock = true;
 
-		    peers.crawl()
-                .then(() => {
-                    console.log("=========================\nCRAWL FINISHED\n=========================");
+                console.log("=========================\nSTART CRAWL\n=========================");
 
-                    console.log("=========================\nSTART PROCESS PEERS\n=========================");
-                    return peers.processPeers();
-                })
-                .then(() => {
-                    console.log("=========================\nPROCESS PEERS FINISHED\n=========================");
+                peers.crawl()
+                    .then(() => {
+                        console.log("=========================\nCRAWL FINISHED\n=========================");
 
-                    console.log("=========================\nSTART BUILD STATS\n=========================");
-                    return peers.buildStats();
-                })
-                .then(() => {
-                    console.log("=========================\nBUILD STATS FINISHED\n=========================");
+                        console.log("=========================\nSTART PROCESS PEERS\n=========================");
+                        return peers.processPeers();
+                    })
+                    .then(() => {
+                        console.log("=========================\nPROCESS PEERS FINISHED\n=========================");
 
-                    console.log("=========================\nSTART HEALTH CHECK AND CLEAN PEERS\n=========================");
-                    return peers.healthCheckAndCleanPeers();
-                })
-                .then(() => {
-                    console.log("=========================\nHEALTH CHECK AND CLEAN PEERS FINISHED\n=========================");
-                })
-                .catch((error) => {
-                    console.error("Error occurred during cronjob", error);
-                });
+                        console.log("=========================\nSTART BUILD STATS\n=========================");
+                        return peers.buildStats();
+                    })
+                    .then(() => {
+                        console.log("=========================\nBUILD STATS FINISHED\n=========================");
+
+                        console.log("=========================\nSTART HEALTH CHECK AND CLEAN PEERS\n=========================");
+                        return peers.healthCheckAndCleanPeers();
+                    })
+                    .then(() => {
+                        console.log("=========================\nHEALTH CHECK AND CLEAN PEERS FINISHED\n=========================");
+                    })
+                    .catch((error) => {
+                        console.error("Error occurred during cronjob", error);
+                    })
+                    .finally(() => {
+                        crawlLock = false;
+                    });
+            } else {
+		        console.info("Crawling is locked due to a running process - skipping this iteration")
+            }
 		},
 		start:true,
         runOnInit: true,

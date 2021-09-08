@@ -542,11 +542,11 @@ exports.healthCheckAndCleanPeers = async function() {
                 delete peerData.blacklisted;
 
                 if (peerData.state === 0 || peerData.state === 1) {
-                    logger.info("Peer found on iteration " + peersIterated + ", state CONNECTED - set active=true");
+                    logger.info("Peer "+peerToCheck+" found on iteration " + peersIterated + " ("+peerToRequest+"), state CONNECTED - set active=true");
                     peerData.lastConnected = new Date();
                     peerData.active = true;
                 } else {
-                    logger.info("Peer found on iteration " + peersIterated + ", state not CONNECTED - set active=false");
+                    logger.info("Peer "+peerToCheck+" found on iteration " + peersIterated + " ("+peerToRequest+"), state not CONNECTED - set active=false");
                     peerData.active = false;
                     peersDeactivated++;
                 }
