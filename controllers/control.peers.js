@@ -519,7 +519,7 @@ exports.healthCheckAndCleanPeers = async function() {
     for (const peerToCheck of peers) {
 
         let peersIterated = 0;
-        let peerProcessed = false;
+        let isConnected = false;
 
         // iterate through all peers and getPeer for peerToCheck
         // set active if state returns 1, deactivate if state is not 1, delete if no response from any peer
@@ -551,34 +551,35 @@ exports.healthCheckAndCleanPeers = async function() {
                     logger.info("Peer "+peerToCheck._id+" found on iteration " + peersIterated + " ("+peerToRequest._id+"), state CONNECTED - set active=true");
                     peerData.lastConnected = new Date();
                     peerData.active = true;
-                } else {
-                    logger.info("Peer "+peerToCheck._id+" found on iteration " + peersIterated + " ("+peerToRequest._id+"), state not CONNECTED - set active=false");
-                    peerData.active = false;
-                    peersDeactivated++;
-                }
 
-                try {
-                    await Peer.updateOne({_id: peerToCheck._id}, peerData);
-                } catch (e) {
-                    logger.error("Could not update peer status", e);
-                }
+                    isConnected = true;
 
-                // Peer found and updated, break loop
-                peerProcessed = true;
-                break;
+                    try {
+                        await Peer.updateOne({_id: peerToCheck._id}, peerData);
+                    } catch (e) {
+                        logger.error("Could not update peer status", e);
+                    }
+
+                    // Peer found and updated, break loop
+                    break;
+                }
             }
         }
 
-        // could not get any peer info after requesting getPeer on all peers, delete
-        if (!peerProcessed) {
-            await Peer.deleteOne({_id: peerToCheck._id});
+        if (peerToCheck.active) {
+            // could not get any peer info after requesting getPeer on all peers, deactivate
+            if (!isConnected) {
+                logger.info("Peer " + peerToCheck._id + " not connected after all iterations - set active=false");
+                peerToCheck.active = false;
+                peersDeactivated++;
 
-            logger.info("Could not get any peer info after requesting getPeer on all peers, deleted " + peerToCheck._id);
-            peersDeleted++;
-        }
-
-        // delete peer after n minutes of inactivity (configurable)
-        if (!peerToCheck.active) {
+                try {
+                    await Peer.updateOne({_id: peerToCheck._id}, peerToCheck);
+                } catch (e) {
+                    logger.error("Could not update peer status", e);
+                }
+            }
+        } else {
             const lastConnected = peerToCheck.lastConnected;
 
             if (new Date().getTime() - lastConnected.getTime() > (config.removeInactiveAfterMinutes * 60 * 1000)) {
@@ -593,7 +594,7 @@ exports.healthCheckAndCleanPeers = async function() {
         peersProcessed++;
     }
 
-    logger.info('Processed ' + peersProcessed + ' peers (' + deactivatedPeersProcessed + ' total inactive, ' + peersDeactivated + ' deactivated just now, ' + peersDeleted + ' peers deleted)');
+    logger.info('Processed ' + peersProcessed + ' peers (' + deactivatedPeersProcessed + ' total inactive, ' + peersDeactivated + ' deactivated just now, ' + peersDeleted + ' peers deleted due to inactivity)');
 
     logger.debug("Exiting healthCheckPeers");
 };
