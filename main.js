@@ -108,7 +108,7 @@ cronjobs = {};
 const peers = require('./controllers/control.peers');
 
 exports.axiosInstance = axios.create({
-    timeout: 5000
+    timeout: 1000
 });
 
 var crawlLock = false;
