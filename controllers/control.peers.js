@@ -146,7 +146,7 @@ exports.getPeer = async function(ip, port, peer){
 
 exports.getPeers = async function(ip, port){
     const p = port ? port : config.nodeApiPort;
-    const url = 'http://' + ip + ':' + p + '/api?requestType=getPeers&active=true';
+    const url = 'http://' + ip + ':' + p + '/api?requestType=getPeers&state=CONNECTED';
 
     logger.debug('getPeers:  ' + url );
 
