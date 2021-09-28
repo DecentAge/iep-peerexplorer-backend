@@ -277,7 +277,7 @@ exports.crawlPeer = async function(ip, port, processedPeers) {
 
                         const existing = await Peer.findOne({_id: address});
 
-                        if (existing && !existing.lastConnected) {
+                        if (!existing || existing && !existing.lastConnected) {
                             peerData.lastConnected = new Date();
                         }
 
@@ -582,7 +582,7 @@ exports.healthCheckAndCleanPeers = async function() {
         } else {
             const lastConnected = peerToCheck.lastConnected;
 
-            if (new Date().getTime() - lastConnected.getTime() > (config.removeInactiveAfterMinutes * 60 * 1000)) {
+            if (!lastConnected || new Date().getTime() - lastConnected.getTime() > (config.removeInactiveAfterMinutes * 60 * 1000)) {
                 await Peer.deleteOne({_id: peerToCheck._id});
 
                 logger.info("Peer has last been connected on " + lastConnected + ", deleted " + peerToCheck._id);
