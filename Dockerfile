@@ -1,7 +1,7 @@
-FROM node:12-alpine as builder
+FROM node:12-alpine3.15 as builder
 WORKDIR /app
 COPY ./package.json /app
-RUN apk add --no-cache --virtual .gyp python make g++ 
+RUN apk add --no-cache --virtual .gyp python3 make g++
 RUN npm install
 COPY . /app
 RUN npm run-script update-version --release_version=$(cat release-version.txt) 
