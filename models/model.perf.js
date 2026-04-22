@@ -15,12 +15,11 @@
  ******************************************************************************/
 
 const mongoose = require('mongoose');
-const moment = require('moment');
 const Schema = mongoose.Schema;
 
 var Perf = new Schema({
     ip:String,
-    timestamp:{type:Date, default:moment().toDate()},
+    timestamp:{type:Date, default:Date.now},
     numberOfActivePeers:Number,
     SystemLoadAverage:Number,
     freeMemory:Number
