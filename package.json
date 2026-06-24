@@ -1,6 +1,6 @@
 {
   "name": "iep-peerexplorer-backend",
-  "version": "0.3.3",
+  "version": "0.4.1",
   "description": "",
   "main": "main.js",
   "author": "Infinity Community Development Team",
@@ -29,7 +29,9 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "testMatch": ["**/tests/**/*.test.js"],
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
     "testTimeout": 30000
   }
 }
