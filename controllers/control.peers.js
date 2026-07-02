@@ -229,6 +229,7 @@ exports.crawlPeer = async function (ip, port, processedPeers) {
                     logger.debug("Peer successfully saved, " + address);
                 } else {
                     await Peer.deleteOne({ _id: address });
+                    await State.deleteOne({ _id: address });
                     logger.info("Peer now blacklisted, deleted " + address);
                 }
 
@@ -342,10 +343,15 @@ exports.buildStats = async function () {
 
     const peers = await Peer.find({});
 
+    // Drop orphaned State docs (peers pruned from the Peer collection whose State
+    // lingered) so the aggregated counters below cannot exceed totalNodes. This also
+    // self-heals State that accumulated before the delete-in-sync fix.
+    await State.deleteMany({ _id: { $nin: peers.map((p) => p._id) } });
+
     const result = await State.aggregate([
         {
             $project: {
-                activeNodes: { $cond: ["$activeNodes", 1, 0] },
+                activeNodes: { $cond: ["$active", 1, 0] },
                 apiSSL: { $cond: ["$apiSSL", 1, 0] },
                 apiCors: { $cond: ["$apiServerCORS", 1, 0] },
                 apiEnabled: { $cond: ["$apiServerEnable", 1, 0] },
@@ -372,7 +378,7 @@ exports.buildStats = async function () {
         {
             $group: {
                 _id: "nodeStats",
-                activeNodes: { $sum: 1 },
+                activeNodes: { $sum: "$activeNodes" },
                 apiSSL: { $sum: "$apiSSL" },
                 apiCors: { $sum: "$apiCors" },
                 apiEnabled: { $sum: "$apiEnabled" },
@@ -498,6 +504,7 @@ exports.healthCheckAndCleanPeers = async function () {
 
             if (!lastConnected || new Date().getTime() - lastConnected.getTime() > (config.removeInactiveAfterMinutes * 60 * 1000)) {
                 await Peer.deleteOne({ _id: peerToCheck._id });
+                await State.deleteOne({ _id: peerToCheck._id });
                 logger.info("Peer has last been connected on " + lastConnected + ", deleted " + peerToCheck._id);
                 peersDeleted++;
             }

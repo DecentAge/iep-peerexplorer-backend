@@ -237,8 +237,8 @@ describe('buildStats', () => {
         ]);
 
         await State.create([
-            { _id: TEST_IP, apiSSL: true, apiServerCORS: true, apiServerEnable: true, correctInvalidFees: true, storageMongodb: true },
-            { _id: PEER_IP, apiSSL: false, apiServerCORS: false, apiServerEnable: false, correctInvalidFees: false },
+            { _id: TEST_IP, active: true, apiSSL: true, apiServerCORS: true, apiServerEnable: true, correctInvalidFees: true, storageMongodb: true },
+            { _id: PEER_IP, active: true, apiSSL: false, apiServerCORS: false, apiServerEnable: false, correctInvalidFees: false },
         ]);
 
         await peers.buildStats();
