@@ -1,7 +1,6 @@
 node_modules
 bower_components
 dist
-package-lock.json
 .git
 .github
 .settings

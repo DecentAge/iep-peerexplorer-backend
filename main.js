@@ -15,113 +15,57 @@
  ******************************************************************************/
 
 const mongoose = require('mongoose');
-const request = require('request');
-const axios = require('axios');
-var config = require('./core/config.js');
-var CronJob = require('cron').CronJob;
-var ping = require('net-ping');
-
-
-mongoose.Promise = global.Promise;
+const { CronJob } = require('cron');
+const config = require('./core/config.js');
+const { app } = require('./app.js');
 
 const {
-	  MONGO_USERNAME,
-	  MONGO_PASSWORD,
-	  MONGO_HOSTNAME,
-	  MONGO_PORT,
-	  MONGO_DB
-	} = process.env;
+    MONGO_USERNAME,
+    MONGO_PASSWORD,
+    MONGO_HOSTNAME,
+    MONGO_PORT,
+    MONGO_DB
+} = process.env;
 
-	const options = {
-	  useNewUrlParser: true,
-	  reconnectTries: Number.MAX_VALUE,
-	  reconnectInterval: 500,
-	  connectTimeoutMS: 10000,
-	};
+const url = `mongodb://${MONGO_USERNAME}:${encodeURIComponent(MONGO_PASSWORD)}@${MONGO_HOSTNAME}:${MONGO_PORT}/${MONGO_DB}?authSource=admin`;
 
-	const url = `mongodb://${MONGO_USERNAME}:${encodeURIComponent(MONGO_PASSWORD)}@${MONGO_HOSTNAME}:${MONGO_PORT}/${MONGO_DB}?authSource=admin`;
-
-	mongoose.connect(url, options);
+mongoose.connect(url, { connectTimeoutMS: 10000 });
 
 mongoose.connection.on('connected', function () {
-  console.log('Mongoose default connection open to ' + MONGO_HOSTNAME);
+    console.log('Mongoose default connection open to ' + MONGO_HOSTNAME);
 });
 
-// If the connection throws an error
-mongoose.connection.on('error',function (err) {
-  console.log('Mongoose default connection error: ' + err);
+mongoose.connection.on('error', function (err) {
+    console.log('Mongoose default connection error: ' + err);
 });
 
-// When the connection is disconnected
 mongoose.connection.on('disconnected', function () {
-  console.log('Mongoose default connection disconnected');
+    console.log('Mongoose default connection disconnected');
 });
 
-// If the Node process ends, close the Mongoose connection
-process.on('SIGINT', function() {
-  mongoose.connection.close(function () {
+process.on('SIGINT', async function () {
+    await mongoose.connection.close();
     console.log('Mongoose default connection disconnected through app termination');
     process.exit(0);
-  });
 });
 
-var express = require('express');
-var app = express();
+const port = config.port;
+const server = app.listen(port);
 
-var Peers = require('./models/model.peer');
-var Stats = require('./models/model.stats');
-
-app.enable('trust proxy');
-
-/*
-var toobusy = require('toobusy-js');
-app.use(function(req, res, next) {
-    if (toobusy()) {
-        //res.send(503, "Server is too busy right now, sorry.");
-        res.status(503).send("Server is too busy right now, sorry.")
-    } else {
-        next();
-    }
-});
-*/
-
-var port = config.port;
-
-var bodyParser = require('body-parser');
-app.use(bodyParser.urlencoded({extended: true}));
-app.use(bodyParser.json());
-
-app.use(express.static(__dirname + '/static'));
-
-var router = express.Router();
-app.use(process.env.PUBLIC_PATH, router);
-
-require('./routes/route.peers.js')(router);
-require('./routes/route.services.js')(router);
-
-// server = app.listen(port,'127.0.0.1');
-server = app.listen(port);
-
-cronjobs = {};
-
+global.cronjobs = {};
 
 const peers = require('./controllers/control.peers');
 
-exports.axiosInstance = axios.create({
-    timeout: 1000
-});
+let crawlLock = false;
 
-var crawlLock = false;
-
-server.on('listening', function(){
-
-    console.log('Listening on port '+port);
+server.on('listening', function () {
+    console.log('Listening on port ' + port);
     console.log('Starting internal cron for crawl..');
 
-	cronjobs.crawl = new CronJob({
-		cronTime:'00 */7 * * * *',
-		onTick: function() {
-		    if (!crawlLock) {
+    cronjobs.crawl = CronJob.from({
+        cronTime: '00 */7 * * * *',
+        onTick: function () {
+            if (!crawlLock) {
                 crawlLock = true;
 
                 console.log("=========================\nSTART CRAWL\n=========================");
@@ -129,19 +73,16 @@ server.on('listening', function(){
                 peers.crawl()
                     .then(() => {
                         console.log("=========================\nCRAWL FINISHED\n=========================");
-
                         console.log("=========================\nSTART PROCESS PEERS\n=========================");
                         return peers.processPeers();
                     })
                     .then(() => {
                         console.log("=========================\nPROCESS PEERS FINISHED\n=========================");
-
                         console.log("=========================\nSTART BUILD STATS\n=========================");
                         return peers.buildStats();
                     })
                     .then(() => {
                         console.log("=========================\nBUILD STATS FINISHED\n=========================");
-
                         console.log("=========================\nSTART HEALTH CHECK AND CLEAN PEERS\n=========================");
                         return peers.healthCheckAndCleanPeers();
                     })
@@ -155,13 +96,12 @@ server.on('listening', function(){
                         crawlLock = false;
                     });
             } else {
-		        console.info("Crawling is locked due to a running process - skipping this iteration")
+                console.info("Crawling is locked due to a running process - skipping this iteration");
             }
-		},
-		start:true,
+        },
+        start: true,
         runOnInit: true,
-	});
-
+    });
 });
 
 process.on('uncaughtException', function (err) {
