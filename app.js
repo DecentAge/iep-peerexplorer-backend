@@ -14,14 +14,21 @@
  *                                                                            *
  ******************************************************************************/
 
-module.exports = {
-    port: 8888,
-    publicPath: process.env.PUBLIC_PATH || '/peerexplorer-backend',
-    nodeApiHost: process.env.IEP_PEEREXPLORER_BACKEND_NODE_API_HOST || '199.127.137.169',
-    nodeApiPort: process.env.IEP_PEEREXPLORER_BACKEND_NODE_API_PORT || '',
-    removeInactiveAfterMinutes: process.env.IEP_PEEREXPLORER_BACKEND_REMOVE_INACTIVE_PEERS_MINUTES || 60,
-    concurrent: 15,
-    rankFactor:1.00,
-    adminKey:'**YourAdminKeyHere**',
-    logLevel: process.env.IEP_PEEREXPLORER_BACKEND_LOGLEVEL || 'info' // or debug for more details
-};
+const express = require('express');
+const config = require('./core/config.js');
+
+const app = express();
+
+app.enable('trust proxy');
+
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(express.static(__dirname + '/static'));
+
+const router = express.Router();
+app.use(config.publicPath, router);
+
+require('./routes/route.peers.js')(router);
+require('./routes/route.services.js')(router);
+
+module.exports = { app, router };
