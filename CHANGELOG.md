@@ -2,9 +2,13 @@
 
 ## [Unreleased]
 
-## [0.4.1] - 2026-06-24
+## [0.4.1] - 2026-07-06
 ### Changed
 - Reworked backend (Express + MongoDB, cron-based peer crawling) with Jest tests; Node 22; reproducible npm ci builds.
+- CI triggers an iep-docker rebuild after the image build (develop branch only).
+
+### Fixed
+- Keep `State` in sync with the `Peer` collection: prune orphaned `State` documents on sync/pruning and correct the `activeNodes` aggregation.
 
 ## [0.3.x and earlier]
 
