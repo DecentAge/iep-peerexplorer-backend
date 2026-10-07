@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-10-05
+### Changed
+- Build and publish the Docker image from `iep-release` instead of `iep-docker`.
+
 ## [0.4.1] - 2026-07-06
 ### Changed
 - Reworked backend (Express + MongoDB, cron-based peer crawling) with Jest tests; Node 22; reproducible npm ci builds.
