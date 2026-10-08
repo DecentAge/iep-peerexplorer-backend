@@ -1,6 +1,6 @@
 {
   "name": "iep-peerexplorer-backend",
-  "version": "0.4.3-rc",
+  "version": "0.4.3",
   "description": "",
   "main": "main.js",
   "author": "Infinity Community Development Team",
