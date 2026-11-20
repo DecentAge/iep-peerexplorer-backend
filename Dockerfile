@@ -10,7 +10,7 @@ RUN chmod +x /app/wait
 
 FROM node:22.23.5-alpine3.24
 WORKDIR /app
-RUN apk add --no-cache bash
+RUN apk add --no-cache bash && npm install -g npm@11.21.3 && npm cache clean --force
 COPY --from=builder /app /app
 
 EXPOSE 8992
