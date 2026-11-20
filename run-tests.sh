@@ -107,4 +107,4 @@ wait_for_mongod
 
 export MONGO_TEST_URI="mongodb://127.0.0.1:${MONGOD_PORT}/iep_test"
 echo "mongod ready. Running tests..."
-node node_modules/jest/bin/jest.js --forceExit "$@"
+node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit "$@"

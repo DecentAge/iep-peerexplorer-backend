@@ -1,4 +1,4 @@
-FROM node:22-alpine3.21 AS builder
+FROM node:22.23.5-alpine3.24 AS builder
 WORKDIR /app
 COPY ./package.json ./package-lock.json /app/
 RUN apk add --no-cache --virtual .gyp python3 make g++
@@ -8,7 +8,7 @@ RUN npm run-script update-version --release_version=$(cat release-version.txt)
 ADD https://github.com/ufoscout/docker-compose-wait/releases/download/2.12.1/wait /app
 RUN chmod +x /app/wait
 
-FROM node:22-alpine3.21
+FROM node:22.23.5-alpine3.24
 WORKDIR /app
 RUN apk add --no-cache bash
 COPY --from=builder /app /app
