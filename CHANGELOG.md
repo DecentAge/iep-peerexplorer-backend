@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.4.5] - 2026-11-22
+### Changed
+- Maintenance and internal updates.
+
 ## [0.4.4] - 2026-10-12
 ### Changed
 - Maintenance and internal updates.
